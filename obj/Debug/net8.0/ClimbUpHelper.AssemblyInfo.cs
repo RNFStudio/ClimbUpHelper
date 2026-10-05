@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ClimbUpHelper")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7d6942bd09ce8e75b10b21c4fe05ec4baf42d42d")]
 [assembly: System.Reflection.AssemblyProductAttribute("ClimbUpHelper")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ClimbUpHelper")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

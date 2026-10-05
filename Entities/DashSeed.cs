@@ -49,12 +49,14 @@ public class DashSeed : BaseEntity
 
     private int depthOnTouch = -1000000;
 
+    private int initDepth;
+
     public DashSeed(EntityData data, Vector2 offset)
         : base(data, offset)
     {
         start = Position;
 
-        Depth = data.Int("depth", -100);
+        Depth = initDepth = data.Int("depth", -100);
         seedDashes = data.Int("seedDashes", 1);
         Collider = new Hitbox(12f, 12f, -6f, -6f); // wip: can customize in the future
 
@@ -252,6 +254,9 @@ public class DashSeed : BaseEntity
         }
 
         Visible = false;
+
+        Depth = initDepth;
+
         yield return RandomUtils.RandomFloat(returnTimeMin, returnTimeMax, seedIndex).ClampMin(0);
 
         Audio.Play(appearSfx, Position, "count", (float)seedIndex);

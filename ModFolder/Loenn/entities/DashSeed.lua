@@ -29,6 +29,7 @@ seed.placements = {
         particleColor2 = "808080ff",
         returnTimeMax = 0.4,
         returnTimeMin = 0.2,
+        --seedDashes = 1,
     },
 }
 
@@ -66,6 +67,10 @@ seed.fieldInformation = {
     },
     lightEndFade = {
         fieldType = "integer",
+    },
+    seedDashes = {
+        fieldType = "integer",
+        minimumValue = 1,
     },
 }
 
