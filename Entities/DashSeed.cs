@@ -172,9 +172,17 @@ public class DashSeed : BaseEntity
             }
 
             // 玩家刚冲刺过：份额减一，减到 0 时这颗籽被消耗
-            if (Md.Session.DashSeedLastDashes > player.Dashes && player.Dashes == 0)
+            bool condition1 = Md.Session.DashSeedLastDashes > player.Dashes && player.Dashes == 0;
+            bool condition2 = player.CollideCheck<Water>() && (player.dashAttackTimer > 0 || player.StateMachine.State == 2);
+            if (condition1 || condition2)
             {
                 Md.Session.DashSeedDashes--;
+
+                // 手动代替冲刺减1
+                if (condition2)
+                {
+                    player.Dashes--;
+                }
 
                 if (Md.Session.DashSeedDashes <= 0)
                 {
