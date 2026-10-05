@@ -1,0 +1,6 @@
+- Name: ClimbUpHelper
+  Version: 0.0.1
+  DLL: Code/ClimbUpHelper.dll
+  Dependencies:
+    - Name: ChroniaHelper
+      Version: 1.56.2
