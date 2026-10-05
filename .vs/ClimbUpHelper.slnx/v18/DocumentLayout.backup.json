@@ -7,16 +7,20 @@
       "RelativeMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|solutionrelative:modfolder\\loenn\\entities\\dashseed.lua||{3B902123-F8A7-4915-9F01-361F908088D0}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|e:\\celeste\u002B\\climbuphelper source\\modfolder\\loenn\\lang\\en_gb.lang||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|solutionrelative:modfolder\\loenn\\lang\\en_gb.lang||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|e:\\celeste\u002B\\climbuphelper source\\modfolder\\everest.yaml||{06C066C6-04A2-4E5D-8202-439FD4234EF1}",
+      "RelativeMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|solutionrelative:modfolder\\everest.yaml||{06C066C6-04A2-4E5D-8202-439FD4234EF1}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|e:\\celeste\u002B\\climbuphelper source\\entities\\dashseed.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|solutionrelative:entities\\dashseed.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|e:\\celeste\u002B\\climbuphelper source\\climbuphelper.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
       "RelativeMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|solutionrelative:climbuphelper.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|e:\\celeste\u002B\\climbuphelper source\\modfolder\\everest.yaml||{06C066C6-04A2-4E5D-8202-439FD4234EF1}",
-      "RelativeMoniker": "D:0:0:{EFEB832A-0CE0-1A51-7B74-2A4CBAFFE3C3}|ClimbUpHelper.csproj|solutionrelative:modfolder\\everest.yaml||{06C066C6-04A2-4E5D-8202-439FD4234EF1}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,8 +30,21 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "en_gb.lang",
+              "DocumentMoniker": "E:\\Celeste\u002B\\ClimbUpHelper Source\\ModFolder\\Loenn\\lang\\en_gb.lang",
+              "RelativeDocumentMoniker": "ModFolder\\Loenn\\lang\\en_gb.lang",
+              "ToolTip": "E:\\Celeste\u002B\\ClimbUpHelper Source\\ModFolder\\Loenn\\lang\\en_gb.lang",
+              "RelativeToolTip": "ModFolder\\Loenn\\lang\\en_gb.lang",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-10-05T10:29:51.308Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -36,27 +53,26 @@
               "RelativeDocumentMoniker": "ModFolder\\Loenn\\entities\\DashSeed.lua",
               "ToolTip": "E:\\Celeste\u002B\\ClimbUpHelper Source\\ModFolder\\Loenn\\entities\\DashSeed.lua*",
               "RelativeToolTip": "ModFolder\\Loenn\\entities\\DashSeed.lua*",
-              "ViewState": "AgIAADMAAAAAAAAAAAAAAEkAAAAGAAAAAAAAAA==",
+              "ViewState": "AgIAABsAAAAAAAAAAAAAACMAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
               "WhenOpened": "2026-10-05T07:27:10.148Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "DashSeed.cs",
               "DocumentMoniker": "E:\\Celeste\u002B\\ClimbUpHelper Source\\Entities\\DashSeed.cs",
               "RelativeDocumentMoniker": "Entities\\DashSeed.cs",
               "ToolTip": "E:\\Celeste\u002B\\ClimbUpHelper Source\\Entities\\DashSeed.cs",
               "RelativeToolTip": "Entities\\DashSeed.cs",
-              "ViewState": "AgIAADAAAAAAAAAAAAAuwD0AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAHMAAAAAAAAAAAAAwD0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-05T07:11:21.643Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-05T07:11:21.643Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "ClimbUpHelper.csproj",
               "DocumentMoniker": "E:\\Celeste\u002B\\ClimbUpHelper Source\\ClimbUpHelper.csproj",
               "RelativeDocumentMoniker": "ClimbUpHelper.csproj",
@@ -64,12 +80,11 @@
               "RelativeToolTip": "ClimbUpHelper.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-10-05T07:11:09.921Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-05T07:11:09.921Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "everest.yaml",
               "DocumentMoniker": "E:\\Celeste\u002B\\ClimbUpHelper Source\\ModFolder\\everest.yaml",
               "RelativeDocumentMoniker": "ModFolder\\everest.yaml",
@@ -77,7 +92,8 @@
               "RelativeToolTip": "ModFolder\\everest.yaml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003775|",
-              "WhenOpened": "2026-10-05T07:06:23.569Z"
+              "WhenOpened": "2026-10-05T07:06:23.569Z",
+              "EditorCaption": ""
             }
           ]
         }

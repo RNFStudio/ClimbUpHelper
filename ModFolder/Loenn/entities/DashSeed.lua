@@ -45,7 +45,7 @@ seed.fieldOrder = {
 ]]
 
 seed.fieldInformation = {
-    depth = require("mods").requireFromPlugin("helpers.field_options").depths,
+    depth = require("mods").requireFromPlugin("helpers.field_options", "ChroniaHelper").depths,
     spriteColor = {
         fieldType = "color",
         useAlpha = true,
