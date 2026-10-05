@@ -69,7 +69,7 @@ public class DashSeed : BaseEntity
             SolidChecker = solid => solid.CollideCheck(this),
             OnAttach = platform =>
             {
-                Depth = depthOnTouch;
+                Depth = initDepth;
                 Collider = new Hitbox(24f, 24f, -12f, -12f);
                 attached = platform;
                 start = Position - platform.Position;
