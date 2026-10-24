@@ -10,24 +10,33 @@ namespace ChroniaHelper.Entities;
 /// <summary>
 /// 冲刺籽（DashSeed）。
 ///
-/// 一个"无效果的草莓籽"，统一使用 ghost（蓝色残影）外观：
-///   玩家碰到即可拾取，拾取后跟随玩家（seed_touch / 脉冲等原版表现）
+/// 沿用原版草莓籽（StrawberrySeed）的完整行为，但不与草莓绑定：
+///   玩家碰到即拾取并跟随玩家（seed_touch / 脉冲等原版表现）
 ///   站在会移动的实体上时会跟着一起移动
-///   永远不会拼合成草莓，也没有任何收集 / 计数 / 保存效果
+///   没有「集齐所有籽拼成草莓」这一流程，任何时候都不会被合并、也不会被永久收集
 ///
-/// 冲刺机制：在"背包本身不给冲刺"的关卡里（例如 Prologue inventory，MaxDashes == 0），
-/// 玩家每持有一颗籽就有一颗冲刺；冲刺会消耗"最先捡起"的那颗籽。
+/// 冲刺规则：
+///   每颗籽自带一笔冲刺额度（面板 seedDashes，默认 1）
+///   玩家自身冲刺为 0、却仍在按冲刺键时，由「最先捡起」的那颗籽替玩家发起冲刺
+///   每发起一次扣掉自己 1 点额度；额度归零这颗籽即飞回原位，由下一颗籽接上
 ///
-/// 冲刺消耗：优先消耗玩家自身的冲刺，自身冲刺用尽后才消耗籽的份额；份额耗尽即飞回原位。
-///
-/// 落地掉落：与原版草莓籽一致 —— 拾取后 0.25 秒内不会掉落，
-/// 落地停留 0.15 秒（或离地向上移动）即掉落并飞回原位。
+/// 掉落规则与原版一致：
+///   拾取后 0.25 秒内不会掉落
+///   之后落地停留 0.15 秒（或离地向上移动）即掉落
+///   落地期间离地则重新计时、取消本次掉落
+///   掉落后播放 poof 效果并飞回初始位置重新出现
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/DashSeed")]
 [ExA.Credits("Inspiration and code provided by RogerNF")]
 public class DashSeed : BaseEntity
 {
+    /// <summary>拾取后不会掉落的时间。</summary>
+    private const float LoseDelay = 0.25f;
+
+    /// <summary>落地后掉落所需的停留时间。</summary>
+    private const float LoseGraceTime = 0.15f;
+
     private Sprite sprite;
     private Follower follower;
     private Wiggler wiggler;
@@ -43,23 +52,17 @@ public class DashSeed : BaseEntity
 
     private int seedIndex;
 
-    /// <summary>拾取后不会掉落的时间。</summary>
-    private const float LoseDelay = 0.25f;
-
-    /// <summary>落地后掉落所需的停留时间。</summary>
-    private const float LoseGraceTime = 0.15f;
-
     private float canLoseTimer;
     private float loseTimer;
     private bool losing;
 
-    /// <summary>上一帧的冲刺攻击计时，用于识别水中冲刺的起始帧。</summary>
-    private float lastDashAttackTimer;
-
     private float returnTimeMin, returnTimeMax;
 
-    /// <summary>被消耗时补予玩家的冲刺数。</summary>
+    /// <summary>被消耗时补予玩家的冲刺数（后续冲刺逻辑使用）。</summary>
     private int seedDashes = 1;
+
+    /// <summary>这颗籽剩余的冲刺额度，耗尽即被消耗。</summary>
+    private int remainingDashes;
 
     private int depthOnTouch = -1000000;
 
@@ -72,6 +75,7 @@ public class DashSeed : BaseEntity
 
         Depth = initDepth = data.Int("depth", -100);
         seedDashes = data.Int("seedDashes", 1);
+        remainingDashes = seedDashes;
         Collider = new Hitbox(12f, 12f, -6f, -6f); // wip: can customize in the future
 
         Add(follower = new Follower(OnGainLeader, OnLoseLeader));
@@ -175,108 +179,83 @@ public class DashSeed : BaseEntity
     {
         base.Update();
 
-        // 只有「最先捡起」的那颗籽负责冲刺结算与落地掉落，其余籽跳过以免重复触发
+        // 拾取后先等保护时间过去，之后才允许因落地掉落
+        if (canLoseTimer > 0f)
+        {
+            canLoseTimer -= Engine.DeltaTime;
+        }
+        else if (follower.HasLeader && player.LoseShards)
+        {
+            losing = true;
+        }
+
+        // 落地掉落：连续在地累计到 LoseGraceTime，或离地向上移动时掉落
+        if (losing)
+        {
+            if (loseTimer <= 0f || player.Speed.Y < 0f)
+            {
+                player.Leader.LoseFollower(follower);
+                losing = false;
+            }
+            else if (player.LoseShards)
+            {
+                loseTimer -= Engine.DeltaTime;
+            }
+            else
+            {
+                loseTimer = LoseGraceTime;
+                losing = false;
+            }
+        }
+
+        // 冲刺：玩家自己没有冲刺、却仍在尝试冲刺时，由这颗籽替玩家发起一次
         if (follower.HasLeader && IsOldestHeld())
         {
-            // 上一颗籽的份额耗尽后，由当前这颗顶替成为新的待消耗籽
-            if (Md.Session.DashSeedDashes <= 0)
-            {
-                Md.Session.DashSeedDashes = seedDashes;
-                player.Dashes += seedDashes;
-            }
-
-            // 冲刺结算：优先消耗玩家自身的冲刺，自身冲刺用尽后才扣籽的份额
-            int spent = Md.Session.DashSeedLastDashes - player.Dashes;
-
-            // 接管第一帧只做对齐，不判定冲刺起始（否则接替的籽会把进行中的冲刺当成新的）
-            bool dashStarted = false;
-
-            if (lastDashAttackTimer >= 0f)
-            {
-                dashStarted = player.dashAttackTimer > lastDashAttackTimer + 0.01f;
-            }
-
-            lastDashAttackTimer = player.dashAttackTimer;
-
-            if (spent > 0)
-            {
-                int own = Math.Max(0, Md.Session.DashSeedLastDashes - Md.Session.DashSeedDashes);
-
-                if (spent > own)
-                {
-                    SpendSeedDashes(spent - own);
-                }
-            }
-            else if (dashStarted && player.CollideCheck<Water>())
-            {
-                // 水中冲刺不扣引擎的冲刺数，需单独结算一次
-                int own = Math.Max(0, player.Dashes - Md.Session.DashSeedDashes);
-                player.Dashes = Math.Max(0, player.Dashes - 1);
-
-                if (own <= 0)
-                {
-                    SpendSeedDashes(1);
-                }
-            }
-
-            // 落地掉落：与原版草莓籽一致
-            if (canLoseTimer > 0f)
-            {
-                canLoseTimer -= Engine.DeltaTime;
-            }
-            else if (follower.HasLeader && player.LoseShards)
-            {
-                losing = true;
-            }
-
-            if (losing && follower.HasLeader)
-            {
-                if (loseTimer <= 0f || player.Speed.Y < 0f)
-                {
-                    DropSeed();
-                }
-                else if (player.LoseShards)
-                {
-                    loseTimer -= Engine.DeltaTime;
-                }
-                else
-                {
-                    loseTimer = LoseGraceTime;
-                    losing = false;
-                }
-            }
-
-            if (follower.HasLeader)
-            {
-                Md.Session.DashSeedLastDashes = player.Dashes;
-            }
+            TrySeedDash();
         }
 
         sprite.Position = new Vector2(sine.Value * 2f, sine.ValueOverTwo) + shaker.Value;
     }
 
-    /// <summary>由籽支付若干格冲刺份额，份额耗尽即掉落。</summary>
-    private void SpendSeedDashes(int amount)
+    /// <summary>玩家没有冲刺却仍在按冲刺键时，消耗自己一点额度替玩家发起冲刺。</summary>
+    private void TrySeedDash()
     {
-        Md.Session.DashSeedDashes = Math.Max(0, Md.Session.DashSeedDashes - amount);
-
-        if (Md.Session.DashSeedDashes <= 0)
+        if (remainingDashes <= 0 || player.Dashes > 0 || !CanSeedDash())
         {
-            DropSeed();
+            return;
+        }
+
+        remainingDashes--;
+
+        // 补一格冲刺给引擎扣，再走原版冲刺流程（冲刺方向由引擎按当前瞄准决定）
+        player.Dashes = 1;
+        player.StartDash();
+        player.StateMachine.State = 2;
+
+        if (remainingDashes <= 0)
+        {
+            player.Leader.LoseFollower(follower);
         }
     }
 
-    /// <summary>掉落：退还籽尚未用掉的冲刺份额，然后松开跟随（飞回原位）。</summary>
-    private void DropSeed()
+    /// <summary>该籽是否可以替玩家发起冲刺（对齐原版允许冲刺的时机）。</summary>
+    private bool CanSeedDash()
     {
-        player.Dashes = Math.Max(0, Math.Min(player.Dashes - Md.Session.DashSeedDashes, player.MaxDashes));
-        Md.Session.DashSeedDashes = 0;
-        Md.Session.DashSeedLastDashes = player.Dashes;
-        losing = false;
-        player.Leader.LoseFollower(follower);
+        // 只在原版会判定 CanDash 的状态里接管，冲刺中 / 飞行器 / 梦冲等状态不介入
+        int state = player.StateMachine.State;
+
+        if (state != 0 && state != 1 && state != 3 && state != 5 && state != 6 && state != 7 && state != 19)
+        {
+            return false;
+        }
+
+        return (Input.CrouchDashPressed || Input.DashPressed)
+            && player.dashCooldownTimer <= 0f
+            && !player.StateMachine.Locked
+            && (TalkComponent.PlayerOver == null || !Input.Talk.Pressed);
     }
 
-    /// <summary>该籽是否是玩家当前"最先捡起"的那一颗。</summary>
+    /// <summary>该籽是否是玩家当前「最先捡起」的那一颗。</summary>
     private bool IsOldestHeld()
     {
         if (player?.Leader?.Followers == null)
@@ -287,6 +266,7 @@ public class DashSeed : BaseEntity
             if (other.Entity is DashSeed)
                 return other == follower;
         }
+
         return false;
     }
 
@@ -297,8 +277,6 @@ public class DashSeed : BaseEntity
         player.Leader.GainFollower(follower);
         Collidable = false;
         Depth = depthOnTouch;
-
-        // 本实体不检查是否集齐
     }
 
     private void OnGainLeader()
@@ -306,8 +284,7 @@ public class DashSeed : BaseEntity
         wiggler.Start();
         canLoseTimer = LoseDelay;
         loseTimer = LoseGraceTime;
-        losing = false;
-        lastDashAttackTimer = -1f;
+        remainingDashes = seedDashes;
     }
 
     private void OnLoseLeader()
@@ -316,7 +293,7 @@ public class DashSeed : BaseEntity
     }
 
     /// <summary>
-    /// 丢失 / 被冲刺消耗后飞回初始位置复原（沿用原版时间）
+    /// 掉落后飞回初始位置复原
     /// </summary>
     private IEnumerator ReturnRoutine()
     {
