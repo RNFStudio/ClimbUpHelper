@@ -20,3 +20,11 @@ entities.ChroniaHelper/DashSeed.attributes.description.appearSfx=Sound played wh
 entities.ChroniaHelper/DashSeed.attributes.description.particleSprite=Particle sprite used for the burst effect
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor1=Primary particle color
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor2=Secondary particle color
+
+# ========================== Waterfall No-Grab Controller
+
+entities.ChroniaHelper/WaterfallNoGrabController.placements.name.controller=Waterfall No-Grab Controller
+entities.ChroniaHelper/WaterfallNoGrabController.placements.description.controller=While the player is inside any SorbetHelper BigWaterfall, they cannot grab or climb, using the waterfall's real width and drooping height.
+
+entities.ChroniaHelper/WaterfallNoGrabController.attributes.name.inset=Edge Inset
+entities.ChroniaHelper/WaterfallNoGrabController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall, so barely touching the edge does not count. Default 1.
