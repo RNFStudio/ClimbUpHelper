@@ -20,6 +20,30 @@ entities.ChroniaHelper/DashSeed.attributes.description.appearSfx=Sound played wh
 entities.ChroniaHelper/DashSeed.attributes.description.particleSprite=Particle sprite used for the burst effect
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor1=Primary particle color
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor2=Secondary particle color
+entities.ChroniaHelper/DashSeed.attributes.description.index=Number (0-9) shown above the seed when the room contains more than one seed, and used by the inventory HUD
+entities.ChroniaHelper/DashSeed.attributes.name.index=Index
+
+# ========================== Dash Seed Inventory HUD
+
+entities.ChroniaHelper/DashSeedInventoryHUD.placements.name.hud=Dash Seed Inventory HUD
+entities.ChroniaHelper/DashSeedInventoryHUD.placements.description.hud=Shows the queue of held dash seed indices at the top-center of the screen.
+
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.slotWidth=Slot Width
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.slotWidth=Width of a fully expanded slot, in HUD pixels (1920x1080 space). Default 128.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.slotHeight=Slot Height
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.slotHeight=Height of each slot, in HUD pixels. Default 72.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.spacing=Spacing
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.spacing=Space between two slots, in HUD pixels. Animates with the slots. Default 12.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.animationDuration=Animation Duration
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.animationDuration=Seconds a slot takes to fully expand or collapse (ease-in-out). Default 0.5.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.slotAlpha=Slot Opacity
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.slotAlpha=Opacity of the parallelogram when fully expanded. Default 0.5.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.offsetY=Vertical Offset
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.offsetY=Vertical screen position in HUD pixels (1920x1080 space). Default 48.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.textScale=Text Scale
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.textScale=Multiplier on the auto-fitted digit height (1 = digit fills 72% of the slot). Default 1.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.depth=Depth
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.depth=Render depth inside the HUD layer. Lower values are drawn on top. Default -100.
 
 # ========================== Waterfall No-Grab Controller
 

@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data;
+using System.Collections;
 using Celeste.Mod.Entities;
 using ChroniaHelper;
 using ChroniaHelper.Cores;
@@ -8,23 +7,13 @@ using ChroniaHelper.Utils;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 冲刺籽（DashSeed）。
+/// 冲刺籽：沿用原版草莓籽的行为，但不会与草莓合并。
 ///
-/// 沿用原版草莓籽（StrawberrySeed）的完整行为，但不与草莓绑定：
-///   玩家碰到即拾取并跟随玩家（seed_touch / 脉冲等原版表现）
-///   站在会移动的实体上时会跟着一起移动
-///   没有「集齐所有籽拼成草莓」这一流程，任何时候都不会被合并、也不会被永久收集
+/// 拾取后跟随玩家，站在移动实体上会跟着一起移动，落地按原版时序掉落并飞回原位。
+/// 籽自带一笔冲刺额度：玩家自己已经没有冲刺、却仍在按冲刺键时，由最先捡起的那颗籽
+/// 替玩家发起一次冲刺，每发起一次扣一点额度，额度归零这颗籽掉落，由下一颗籽接上。
 ///
-/// 冲刺规则：
-///   每颗籽自带一笔冲刺额度（面板 seedDashes，默认 1）
-///   玩家自身冲刺为 0、却仍在按冲刺键时，由「最先捡起」的那颗籽替玩家发起冲刺
-///   每发起一次扣掉自己 1 点额度；额度归零这颗籽即飞回原位，由下一颗籽接上
-///
-/// 掉落规则与原版一致：
-///   拾取后 0.25 秒内不会掉落
-///   之后落地停留 0.15 秒（或离地向上移动）即掉落
-///   落地期间离地则重新计时、取消本次掉落
-///   掉落后播放 poof 效果并飞回初始位置重新出现
+/// 面板填写 seedDashes 可调整每颗籽的额度，index 用于头顶编号与持有队列显示。
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/DashSeed")]
@@ -50,7 +39,14 @@ public class DashSeed : BaseEntity
     private Player player;
     private Vector2 start;
 
+    /// <summary>房间内的序号，用于相位错开与音效 count 参数。</summary>
     private int seedIndex;
+
+    /// <summary>面板指定的每颗籽的冲刺额度。</summary>
+    private int seedDashes = 1;
+
+    /// <summary>这颗籽剩余的冲刺额度，耗尽即掉落。</summary>
+    private int remainingDashes;
 
     private float canLoseTimer;
     private float loseTimer;
@@ -58,15 +54,29 @@ public class DashSeed : BaseEntity
 
     private float returnTimeMin, returnTimeMax;
 
-    /// <summary>被消耗时补予玩家的冲刺数（后续冲刺逻辑使用）。</summary>
-    private int seedDashes = 1;
-
-    /// <summary>这颗籽剩余的冲刺额度，耗尽即被消耗。</summary>
-    private int remainingDashes;
-
+    private int initDepth;
     private int depthOnTouch = -1000000;
 
-    private int initDepth;
+    private string pulseSfx, touchSfx, poofSfx, appearSfx;
+    private string particlePath;
+    private CColor spriteColor, particleColor1, particleColor2;
+
+    /// <summary>面板指定的编号（0~9），用于头顶显示与持有队列。</summary>
+    private int index;
+
+    /// <summary>房间内有多颗籽时在头顶显示编号。</summary>
+    private bool showIndex, _showIndex;
+
+    /// <summary>留在原位的虚线位置指示。</summary>
+    private OriginMarker marker;
+    private string outlineTexture;
+    private int outlineDepth;
+
+    /// <summary>头顶编号标签（HUD 层）。</summary>
+    private IndexLabel label;
+
+    /// <summary>是否已经确认过房间里的持有队列 HUD。</summary>
+    private bool hudEnsured;
 
     public DashSeed(EntityData data, Vector2 offset)
         : base(data, offset)
@@ -76,6 +86,9 @@ public class DashSeed : BaseEntity
         Depth = initDepth = data.Int("depth", -100);
         seedDashes = data.Int("seedDashes", 1);
         remainingDashes = seedDashes;
+        index = Math.Clamp(data.Int("index", 0), 0, 9);
+        outlineTexture = data.Attr("outlineTexture", "ClimbUpHelper/DashSeed/seed_outline");
+        outlineDepth = data.Int("outlineDepth", 0);
         Collider = new Hitbox(12f, 12f, -6f, -6f); // wip: can customize in the future
 
         Add(follower = new Follower(OnGainLeader, OnLoseLeader));
@@ -139,17 +152,25 @@ public class DashSeed : BaseEntity
 
         returnTimeMax = data.Float("returnTimeMax", 0.4f);
         returnTimeMin = data.Float("returnTimeMin", 0.2f);
+
+        _showIndex = data.Bool("showIndex", false);
     }
-    private string pulseSfx, touchSfx, poofSfx, appearSfx;
-    private CColor spriteColor, particleColor1, particleColor2;
-    private string particlePath;
+
+    /// <summary>该籽的编号，供持有队列 HUD 读取。</summary>
+    public int Index => index;
 
     public override void Added(Scene scene)
     {
         base.Added(scene);
 
-        // 草莓籽follower序号设置
         seedIndex = scene.Tracker.CountEntities<DashSeed>() - 1;
+
+        marker = new OriginMarker(GFX.Game[outlineTexture], start, outlineDepth);
+        scene.Add(marker);
+
+        // 编号画在 HUD 画布上，避免在 Gameplay 画布上被放大发糊
+        label = new IndexLabel(index);
+        scene.Add(label);
     }
 
     public override void Awake(Scene scene)
@@ -173,12 +194,47 @@ public class DashSeed : BaseEntity
         };
 
         burstParticle = CreateBurstParticle(particlePath, particleColor1.Parsed(), particleColor2.Parsed());
+
+        showIndex = scene.Tracker.CountEntities<DashSeed>() > 1 && _showIndex;
     }
 
     public override void Update()
     {
         base.Update();
 
+        // 房间里没有手动放置的持有队列 HUD 时补一个默认的
+        if (!hudEnsured)
+        {
+            hudEnsured = true;
+            DashSeedInventoryHUD.EnsureIn(Scene);
+        }
+
+        UpdateLosing();
+        UpdateDash();
+
+        // 籽被带走后，原位留下一圈位置指示
+        if (marker != null)
+        {
+            marker.Position = start + (attached?.Position ?? Vector2.Zero);
+            marker.Visible = follower.HasLeader || !Visible;
+        }
+
+        // 头顶编号：世界坐标换算成 HUD 画布坐标
+        if (label != null)
+        {
+            label.Visible = showIndex && Visible;
+
+            if (label.Visible)
+            {
+                label.ScreenPosition = level.WorldToScreen(Position + new Vector2(0f, -4f));
+            }
+        }
+
+        sprite.Position = new Vector2(sine.Value * 2f, sine.ValueOverTwo) + shaker.Value;
+    }
+
+    private void UpdateLosing()
+    {
         // 拾取后先等保护时间过去，之后才允许因落地掉落
         if (canLoseTimer > 0f)
         {
@@ -189,32 +245,32 @@ public class DashSeed : BaseEntity
             losing = true;
         }
 
-        // 落地掉落：连续在地累计到 LoseGraceTime，或离地向上移动时掉落
-        if (losing)
-        {
-            if (loseTimer <= 0f || player.Speed.Y < 0f)
-            {
-                player.Leader.LoseFollower(follower);
-                losing = false;
-            }
-            else if (player.LoseShards)
-            {
-                loseTimer -= Engine.DeltaTime;
-            }
-            else
-            {
-                loseTimer = LoseGraceTime;
-                losing = false;
-            }
-        }
+        // 连续在地累计到 LoseGraceTime，或离地向上移动时掉落
+        if (!losing)
+            return;
 
-        // 冲刺：玩家自己没有冲刺、却仍在尝试冲刺时，由这颗籽替玩家发起一次
+        if (loseTimer <= 0f || player.Speed.Y < 0f)
+        {
+            player.Leader.LoseFollower(follower);
+            losing = false;
+        }
+        else if (player.LoseShards)
+        {
+            loseTimer -= Engine.DeltaTime;
+        }
+        else
+        {
+            loseTimer = LoseGraceTime;
+            losing = false;
+        }
+    }
+
+    private void UpdateDash()
+    {
         if (follower.HasLeader && IsOldestHeld())
         {
             TrySeedDash();
         }
-
-        sprite.Position = new Vector2(sine.Value * 2f, sine.ValueOverTwo) + shaker.Value;
     }
 
     /// <summary>玩家没有冲刺却仍在按冲刺键时，消耗自己一点额度替玩家发起冲刺。</summary>
@@ -227,7 +283,7 @@ public class DashSeed : BaseEntity
 
         remainingDashes--;
 
-        // 补一格冲刺给引擎扣，再走原版冲刺流程（冲刺方向由引擎按当前瞄准决定）
+        // 补一格冲刺给引擎扣，再走原版冲刺流程（方向由引擎按当前瞄准决定）
         player.Dashes = 1;
         player.StartDash();
         player.StateMachine.State = 2;
@@ -238,7 +294,7 @@ public class DashSeed : BaseEntity
         }
     }
 
-    /// <summary>该籽是否可以替玩家发起冲刺（对齐原版允许冲刺的时机）。</summary>
+    /// <summary>是否到了可以替玩家发起冲刺的时机。</summary>
     private bool CanSeedDash()
     {
         // 只在原版会判定 CanDash 的状态里接管，冲刺中 / 飞行器 / 梦冲等状态不介入
@@ -292,9 +348,7 @@ public class DashSeed : BaseEntity
         Add(new Coroutine(ReturnRoutine()));
     }
 
-    /// <summary>
-    /// 掉落后飞回初始位置复原
-    /// </summary>
+    /// <summary>掉落后飞回初始位置复原。</summary>
     private IEnumerator ReturnRoutine()
     {
         Audio.Play(poofSfx, Position);
@@ -310,7 +364,6 @@ public class DashSeed : BaseEntity
         }
 
         Visible = false;
-
         Depth = initDepth;
 
         yield return RandomUtils.RandomFloat(returnTimeMin, returnTimeMax, seedIndex).ClampMin(0);
@@ -346,4 +399,60 @@ public class DashSeed : BaseEntity
         SpeedMultiplier = 1E-05f,
         RotationMode = ParticleType.RotationModes.SameAsDirection
     };
+
+    /// <summary>跑在 HUD 画布上的编号标签，位置由所在籽的世界坐标换算而来。</summary>
+    private sealed class IndexLabel : Entity
+    {
+        /// <summary>数字在世界里的大致高度，换算到 HUD 画布时乘 6。</summary>
+        private const float WorldHeight = 10f;
+
+        private readonly string text;
+
+        public Vector2 ScreenPosition;
+
+        public IndexLabel(int index)
+        {
+            text = index.ToString();
+            Tag = Tags.HUD;
+            Depth = -200;
+            Visible = false;
+        }
+
+        public override void Render()
+        {
+            base.Render();
+
+            Vector2 size = ActiveFont.Measure(text);
+            float scale = size.Y > 0f ? WorldHeight * 6f / size.Y : 1f;
+
+            ActiveFont.DrawOutline(text, ScreenPosition, new Vector2(0.5f, 1f), Vector2.One * scale, Color.White, 2f, Color.Black);
+        }
+    }
+
+    /// <summary>留在原位的虚线位置指示，籽被带走时显示。</summary>
+    private sealed class OriginMarker : Entity
+    {
+        private readonly Image image;
+
+        private float timer;
+
+        public OriginMarker(MTexture texture, Vector2 position, int depth)
+            : base(position)
+        {
+            Depth = depth;
+            Visible = false;
+            Collidable = false;
+
+            Add(image = new Image(texture));
+            image.CenterOrigin();
+        }
+
+        public override void Update()
+        {
+            base.Update();
+
+            timer += Engine.DeltaTime;
+            image.Color = Color.White * (0.55f + 0.2f * (float)Math.Sin(timer * 3f));
+        }
+    }
 }
