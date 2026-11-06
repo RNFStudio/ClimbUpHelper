@@ -13,7 +13,8 @@ namespace ChroniaHelper.Entities;
 /// 籽自带一笔冲刺额度：玩家自己已经没有冲刺、却仍在按冲刺键时，由最先捡起的那颗籽
 /// 替玩家发起一次冲刺，每发起一次扣一点额度，额度归零这颗籽掉落，由下一颗籽接上。
 ///
-/// 面板填写 seedDashes 可调整每颗籽的额度，index 用于头顶编号与持有队列显示。
+/// 面板填写 seedDashes 可调整每颗籽的额度；序号按房间内的摆放顺序从 0 开始自动生成，
+/// 头顶编号与持有队列 HUD 都用这个序号。
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/DashSeed")]
@@ -61,11 +62,8 @@ public class DashSeed : BaseEntity
     private string particlePath;
     private CColor spriteColor, particleColor1, particleColor2;
 
-    /// <summary>面板指定的编号（0~9），用于头顶显示与持有队列。</summary>
-    private int index;
-
-    /// <summary>房间内有多颗籽时在头顶显示编号。</summary>
-    private bool showIndex, _showIndex;
+    /// <summary>房间内有多颗籽时才显示头顶编号。</summary>
+    private bool multipleSeeds;
 
     /// <summary>留在原位的虚线位置指示。</summary>
     private OriginMarker marker;
@@ -74,6 +72,9 @@ public class DashSeed : BaseEntity
 
     /// <summary>头顶编号标签（HUD 层）。</summary>
     private IndexLabel label;
+
+    /// <summary>房间内的持有队列 HUD，用来读取头顶编号的显隐设置。</summary>
+    private DashSeedInventoryHUD hud;
 
     /// <summary>是否已经确认过房间里的持有队列 HUD。</summary>
     private bool hudEnsured;
@@ -86,7 +87,6 @@ public class DashSeed : BaseEntity
         Depth = initDepth = data.Int("depth", -100);
         seedDashes = data.Int("seedDashes", 1);
         remainingDashes = seedDashes;
-        index = Math.Clamp(data.Int("index", 0), 0, 9);
         outlineTexture = data.Attr("outlineTexture", "ClimbUpHelper/DashSeed/seed_outline");
         outlineDepth = data.Int("outlineDepth", 0);
         Collider = new Hitbox(12f, 12f, -6f, -6f); // wip: can customize in the future
@@ -152,12 +152,10 @@ public class DashSeed : BaseEntity
 
         returnTimeMax = data.Float("returnTimeMax", 0.4f);
         returnTimeMin = data.Float("returnTimeMin", 0.2f);
-
-        _showIndex = data.Bool("showIndex", false);
     }
 
-    /// <summary>该籽的编号，供持有队列 HUD 读取。</summary>
-    public int Index => index;
+    /// <summary>该籽的序号：按房间内的摆放顺序从 0 开始，供头顶编号与持有队列 HUD 使用。</summary>
+    public int Index => seedIndex;
 
     public override void Added(Scene scene)
     {
@@ -169,7 +167,7 @@ public class DashSeed : BaseEntity
         scene.Add(marker);
 
         // 编号画在 HUD 画布上，避免在 Gameplay 画布上被放大发糊
-        label = new IndexLabel(index);
+        label = new IndexLabel(Index);
         scene.Add(label);
     }
 
@@ -195,7 +193,7 @@ public class DashSeed : BaseEntity
 
         burstParticle = CreateBurstParticle(particlePath, particleColor1.Parsed(), particleColor2.Parsed());
 
-        showIndex = scene.Tracker.CountEntities<DashSeed>() > 1 && _showIndex;
+        multipleSeeds = scene.Tracker.CountEntities<DashSeed>() > 1;
     }
 
     public override void Update()
@@ -219,10 +217,13 @@ public class DashSeed : BaseEntity
             marker.Visible = follower.HasLeader || !Visible;
         }
 
-        // 头顶编号：世界坐标换算成 HUD 画布坐标
+        if (hud == null)
+            hud = Scene?.Tracker?.GetEntity<DashSeedInventoryHUD>();
+
+        // 头顶编号：世界坐标换算成 HUD 画布坐标，显隐由持有队列 HUD 的设置决定
         if (label != null)
         {
-            label.Visible = showIndex && Visible;
+            label.Visible = Visible && multipleSeeds && (hud?.ShowSeedIndex ?? true);
 
             if (label.Visible)
             {

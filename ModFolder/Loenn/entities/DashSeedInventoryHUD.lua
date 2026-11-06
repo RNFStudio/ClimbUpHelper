@@ -17,6 +17,7 @@ hud.placements = {
         slotAlpha = 0.5,
         offsetY = 48.0,
         textScale = 1.0,
+        showSeedIndex = true,
         depth = -100,
     }
 }
@@ -26,7 +27,8 @@ hud.fieldOrder = {
     "depth",
     "slotWidth", "slotHeight", "spacing",
     "animationDuration", "slotAlpha",
-    "offsetY", "textScale"
+    "offsetY", "textScale",
+    "showSeedIndex"
 }
 
 hud.ignoredFields = { "width", "height" }

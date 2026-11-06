@@ -48,6 +48,8 @@ public sealed class DashSeedInventoryHUD : BaseEntity
     private readonly float offsetY;
     private readonly float textScale;
 
+    private readonly bool showSeedIndex;
+
     public DashSeedInventoryHUD(EntityData data, Vector2 offset)
         : base(data, offset)
     {
@@ -66,7 +68,13 @@ public sealed class DashSeedInventoryHUD : BaseEntity
         // 不叫 y，y 是地图里的摆位坐标
         offsetY = data.Float("offsetY", 48f);
         textScale = Math.Max(0.1f, data.Float("textScale", 1f));
+
+        // 房间内籽头顶编号的显隐，由这里统一控制
+        showSeedIndex = data.Bool("showSeedIndex", true);
     }
+
+    /// <summary>是否在籽头顶显示自动序号，供 DashSeed 读取。</summary>
+    public bool ShowSeedIndex => showSeedIndex;
 
     /// <summary>房间里没有手动放置的队列 HUD 时，补一个默认参数的。</summary>
     public static void EnsureIn(Scene scene)

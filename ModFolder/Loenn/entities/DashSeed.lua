@@ -8,7 +8,6 @@ seed.placements = {
     name = "seed",
     data = {
         depth = -100,
-        index = 0,
         persistent = false,
         sprite = "ghostberrySeed",
         spriteColor = "ffffffff",
@@ -31,7 +30,6 @@ seed.placements = {
         returnTimeMax = 0.4,
         returnTimeMin = 0.2,
         --seedDashes = 1,
-        showIndex = false,
     },
 }
 
@@ -73,11 +71,6 @@ seed.fieldInformation = {
     seedDashes = {
         fieldType = "integer",
         minimumValue = 1,
-    },
-    index = {
-        fieldType = "integer",
-        minimumValue = 0,
-        maximumValue = 9,
     },
 }
 

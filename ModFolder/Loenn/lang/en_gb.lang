@@ -20,8 +20,6 @@ entities.ChroniaHelper/DashSeed.attributes.description.appearSfx=Sound played wh
 entities.ChroniaHelper/DashSeed.attributes.description.particleSprite=Particle sprite used for the burst effect
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor1=Primary particle color
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor2=Secondary particle color
-entities.ChroniaHelper/DashSeed.attributes.description.index=Number (0-9) shown above the seed when the room contains more than one seed, and used by the inventory HUD
-entities.ChroniaHelper/DashSeed.attributes.name.index=Index
 
 # ========================== Dash Seed Inventory HUD
 
@@ -42,6 +40,8 @@ entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.offsetY=Vertical Off
 entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.offsetY=Vertical screen position in HUD pixels (1920x1080 space). Default 48.
 entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.textScale=Text Scale
 entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.textScale=Multiplier on the auto-fitted digit height (1 = digit fills 72% of the slot). Default 1.
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.showSeedIndex=Show Seed Index
+entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.showSeedIndex=Whether dash seeds show their auto-generated index above themselves when the room contains more than one seed. Indices follow the room's placement order, starting at 0. Default on.
 entities.ChroniaHelper/DashSeedInventoryHUD.attributes.name.depth=Depth
 entities.ChroniaHelper/DashSeedInventoryHUD.attributes.description.depth=Render depth inside the HUD layer. Lower values are drawn on top. Default -100.
 
