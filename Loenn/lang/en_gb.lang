@@ -1,0 +1,53 @@
+# ========================== Dash Seed
+
+entities.ChroniaHelper/DashSeed.placements.name.seed=Dash Seed
+entities.ChroniaHelper/DashSeed.attributes.description.sprite=Sprite to display for the seed
+entities.ChroniaHelper/DashSeed.attributes.description.spriteColor=Color of the seed sprite
+entities.ChroniaHelper/DashSeed.attributes.description.depth=Render depth of the seed
+entities.ChroniaHelper/DashSeed.attributes.name.index=Index
+entities.ChroniaHelper/DashSeed.attributes.description.index=Single-digit number shown above the seed's spawn point (0-9). The number does not follow the seed.
+entities.ChroniaHelper/DashSeed.attributes.description.wiggleDuration=Duration of the wiggle animation when picked up
+entities.ChroniaHelper/DashSeed.attributes.description.wiggleFrequency=Frequency of the wiggle animation
+entities.ChroniaHelper/DashSeed.attributes.description.waveFrequency=Frequency of the floating sine wave motion
+entities.ChroniaHelper/DashSeed.attributes.description.bloomAlpha=Alpha of the glow bloom
+entities.ChroniaHelper/DashSeed.attributes.description.bloomRadius=Radius of the glow bloom
+entities.ChroniaHelper/DashSeed.attributes.description.lightColor=Color of the vertex light
+entities.ChroniaHelper/DashSeed.attributes.description.lightStartFade=Vertex light start fade distance
+entities.ChroniaHelper/DashSeed.attributes.description.lightEndFade=Vertex light end fade distance
+entities.ChroniaHelper/DashSeed.attributes.description.pulseSfx=Sound played when the seed pulses
+entities.ChroniaHelper/DashSeed.attributes.description.touchSfx=Sound played when the seed is picked up
+entities.ChroniaHelper/DashSeed.attributes.description.poofSfx=Sound played when the seed returns to its origin
+entities.ChroniaHelper/DashSeed.attributes.description.appearSfx=Sound played when the seed reappears
+entities.ChroniaHelper/DashSeed.attributes.description.particleSprite=Particle sprite used for the burst effect
+entities.ChroniaHelper/DashSeed.attributes.description.particleColor1=Primary particle color
+entities.ChroniaHelper/DashSeed.attributes.description.particleColor2=Secondary particle color
+
+# ========================== Waterfall
+
+entities.ChroniaHelper/Waterfall.placements.name.waterfall=Waterfall
+entities.ChroniaHelper/Waterfall.placements.description.waterfall=A resizable waterfall with customizable fill and outline colors. Its bottom connects to the water surface and ripples it, and it distorts the scenery like a vanilla waterfall.
+
+entities.ChroniaHelper/Waterfall.attributes.name.fill_color=Fill Color
+entities.ChroniaHelper/Waterfall.attributes.description.fill_color=Color of the center fill (alpha supported).
+entities.ChroniaHelper/Waterfall.attributes.name.outline_color=Outline Color
+entities.ChroniaHelper/Waterfall.attributes.description.outline_color=Color of the 2px left and right outlines (alpha supported).
+entities.ChroniaHelper/Waterfall.attributes.name.ripple_strength=Ripple Strength
+entities.ChroniaHelper/Waterfall.attributes.description.ripple_strength=Strength of the ripples created on the water surface when the bottom of the waterfall touches water. Default 0.75.
+entities.ChroniaHelper/Waterfall.attributes.name.depth=Depth
+entities.ChroniaHelper/Waterfall.attributes.description.depth=Render depth of the waterfall. Default -9999.
+
+# ========================== Waterfall No-Grab Controller
+
+entities.ChroniaHelper/WaterfallNoGrabController.placements.name.controller=Waterfall No-Grab Controller
+entities.ChroniaHelper/WaterfallNoGrabController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, they cannot grab or climb.
+
+entities.ChroniaHelper/WaterfallNoGrabController.attributes.name.inset=Edge Inset
+entities.ChroniaHelper/WaterfallNoGrabController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall, so barely touching the edge does not count. Default 1.
+
+# ========================== Bloom (background styleground)
+
+effects.ChroniaHelper/Bloom.name=Bloom
+effects.ChroniaHelper/Bloom.attributes.name.strength=Strength
+effects.ChroniaHelper/Bloom.attributes.description.strength=How much of the blurred background is added back. 0 disables the effect.
+effects.ChroniaHelper/Bloom.attributes.name.blur=Blur
+effects.ChroniaHelper/Bloom.attributes.description.blur=Blur radius multiplier for the background.

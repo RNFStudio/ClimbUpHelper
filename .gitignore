@@ -1,8 +1,16 @@
-ClimbUpHelper.csproj.user
-Folder.DotSettings.user
-ClimbUpHelper.sln.DotSettings.user
-ModFolder/Code/
-.idea/
-.vs/
-obj/
+# ---- Build output ----
 bin/
+obj/
+ModFolder/Code/
+/Code/
+/everest.yaml
+
+# ---- IDE / local tooling ----
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Machine-local build overrides (optional; see ClimbUpHelper.csproj)
+/Local.props

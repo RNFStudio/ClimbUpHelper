@@ -1,26 +1,56 @@
-using Celeste.Mod.Entities;
-using ChroniaHelper.Cores;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 持有队列显示：屏幕中上方一排平行四边形格子，按玩家身上跟随的冲刺籽顺序显示编号。
+/// 持有队列显示：屏幕中上方一排软边平行四边形格子，按玩家身上跟随的冲刺籽顺序显示编号。
 /// 最先捡起的那颗在第一格；籽被消耗或掉落时，对应格子收起。
 ///
-/// 每个房间只需要放一个，没有放置时 DashSeed 会自动补一个默认参数的。
+/// 现在是 DashSeed 的内置功能，也是整个 Level 全局唯一的一份：
+/// 房间里有籽时由第一颗籽创建，之后切房间、死亡重载都不会再创建或卸载。
+/// 样式固定，不读取实体属性。
 /// </summary>
 [Tracked]
-[CustomEntity("ChroniaHelper/DashSeedInventoryHUD")]
-public sealed class DashSeedInventoryHUD : BaseEntity
+public sealed class DashSeedInventoryHUD : Entity
 {
     /// <summary>HUD 画布宽度。</summary>
     private const float ScreenWidth = 1920f;
 
+    /// <summary>单个格子的宽度（完全展开时）。</summary>
+    private const float SlotWidth = 96f;
+
+    /// <summary>格子高度。</summary>
+    private const float SlotHeight = 36f;
+
+    /// <summary>格子间距。</summary>
+    private const float Spacing = 8f;
+
     /// <summary>斜边宽度。</summary>
     private const float Slant = 10f;
 
+    /// <summary>左右两侧各占宽度 25% 的 alpha 渐变区。</summary>
+    private const float EdgeGradient = 0.25f;
+
     /// <summary>数字描边宽度。</summary>
     private const float Stroke = 2f;
+
+    /// <summary>展开状态下格子的不透明度。</summary>
+    private const float SlotAlpha = 0.8f;
+
+    /// <summary>整排格子的纵向位置。</summary>
+    private const float OffsetY = 48f;
+
+    /// <summary>编号文字的缩放（比格子更大，属于样式的一部分）。</summary>
+    private const float TextScale = 3.25f;
+
+    /// <summary>单个格子展开或收起所需的秒数。</summary>
+    private const float AnimationDuration = 0.5f;
+
+    /// <summary>烘焙好的软边平行四边形贴图，只生成一次。</summary>
+    private static Texture2D slotTexture;
+
+    /// <summary>数字字体（Renogare 192 图集），只解析一次。</summary>
+    private static PixelFontSize digitFont;
 
     private sealed class Slot
     {
@@ -40,55 +70,35 @@ public sealed class DashSeedInventoryHUD : BaseEntity
 
     private readonly List<float> slotWidths = new();
 
-    private readonly float slotWidth;
-    private readonly float slotHeight;
-    private readonly float spacing;
-    private readonly float animationDuration;
-    private readonly float slotAlpha;
-    private readonly float offsetY;
-    private readonly float textScale;
-
-    private readonly bool showSeedIndex;
-
-    public DashSeedInventoryHUD(EntityData data, Vector2 offset)
-        : base(data, offset)
+    public DashSeedInventoryHUD()
     {
-        Tag = Tags.HUD;
-        Depth = data.Int("depth", -100);
+        // HUD 画在 1920x1080 画布上；Global 让它在切房间、死亡重载时都不被卸载
+        Tag = Tags.HUD | Tags.Global;
+        Depth = -100;
         Visible = true;
-
-        slotWidth = Math.Max(1f, data.Float("slotWidth", 128f));
-        slotHeight = Math.Max(1f, data.Float("slotHeight", 72f));
-        spacing = Math.Max(0f, data.Float("spacing", 12f));
-
-        // 单个格子展开或收起所需的秒数
-        animationDuration = Math.Max(0.01f, data.Float("animationDuration", 0.5f));
-        slotAlpha = Calc.Clamp(data.Float("slotAlpha", 0.5f), 0f, 1f);
-
-        // 不叫 y，y 是地图里的摆位坐标
-        offsetY = data.Float("offsetY", 48f);
-        textScale = Math.Max(0.1f, data.Float("textScale", 1f));
-
-        // 房间内籽头顶编号的显隐，由这里统一控制
-        showSeedIndex = data.Bool("showSeedIndex", true);
     }
 
-    /// <summary>是否在籽头顶显示自动序号，供 DashSeed 读取。</summary>
-    public bool ShowSeedIndex => showSeedIndex;
-
-    /// <summary>房间里没有手动放置的队列 HUD 时，补一个默认参数的。</summary>
-    public static void EnsureIn(Scene scene)
+    private static Texture2D SlotTexture
     {
-        if (scene == null)
-            return;
+        get
+        {
+            if (slotTexture == null || slotTexture.IsDisposed)
+                slotTexture = BuildSlotTexture();
 
+            return slotTexture;
+        }
+    }
+
+    /// <summary>场景里是否已经有队列 HUD。</summary>
+    public static bool ExistsIn(Scene scene)
+    {
         foreach (Entity entity in scene.Entities)
         {
             if (entity is DashSeedInventoryHUD)
-                return;
+                return true;
         }
 
-        scene.Add(new DashSeedInventoryHUD(new EntityData(), Vector2.Zero));
+        return false;
     }
 
     public override void Update()
@@ -109,7 +119,7 @@ public sealed class DashSeedInventoryHUD : BaseEntity
 
         foreach (Slot slot in slots)
         {
-            float width = slotWidth * slot.Progress;
+            float width = SlotWidth * slot.Progress;
             slotWidths.Add(width);
             totalWidth += width;
         }
@@ -117,7 +127,7 @@ public sealed class DashSeedInventoryHUD : BaseEntity
         for (int i = 0; i < slots.Count - 1; i++)
         {
             // 间距按相邻两格中较慢的那个动画，避免格子出入时间距跳变
-            totalWidth += spacing * Math.Min(slots[i].Progress, slots[i + 1].Progress);
+            totalWidth += Spacing * Math.Min(slots[i].Progress, slots[i + 1].Progress);
         }
 
         float x = (ScreenWidth - totalWidth) / 2f;
@@ -134,14 +144,14 @@ public sealed class DashSeedInventoryHUD : BaseEntity
 
             if (textAlpha > 0f)
             {
-                DrawIndex(slot.Index, x + width / 2f, offsetY + slotHeight / 2f, textAlpha);
+                DrawIndex(slot.Index, x + width / 2f, OffsetY + SlotHeight / 2f, textAlpha);
             }
 
             x += width;
 
             if (i < slots.Count - 1)
             {
-                x += spacing * Math.Min(progress, slots[i + 1].Progress);
+                x += Spacing * Math.Min(progress, slots[i + 1].Progress);
             }
         }
     }
@@ -158,7 +168,8 @@ public sealed class DashSeedInventoryHUD : BaseEntity
 
         foreach (Follower follower in player.Leader.Followers)
         {
-            if (follower.Entity is DashSeed seed)
+            // 房间里只有这一颗籽时不进 HUD，自然也没有后续的收起动画
+            if (follower.Entity is DashSeed seed && seed.MultipleSeedsInRoom)
                 queue.Add(seed.Index);
         }
     }
@@ -240,7 +251,7 @@ public sealed class DashSeedInventoryHUD : BaseEntity
             Slot slot = slots[i];
             slot.Elapsed += Engine.DeltaTime;
 
-            float t = Calc.Clamp(slot.Elapsed / animationDuration, 0f, 1f);
+            float t = Calc.Clamp(slot.Elapsed / AnimationDuration, 0f, 1f);
             slot.Progress = slot.From + (slot.To - slot.From) * Ease.CubeInOut(t);
 
             if (slot.Closing && t >= 1f)
@@ -248,40 +259,118 @@ public sealed class DashSeedInventoryHUD : BaseEntity
         }
     }
 
+    /// <summary>
+    /// 生成 96x36 的软边平行四边形：左边和右边各 10% 宽度从透明线性渐变到不透明，
+    /// 4x4 超采样让斜边和渐变都平滑。只在第一次绘制时生成一次。
+    /// </summary>
+    private static Texture2D BuildSlotTexture()
+    {
+        const int samples = 4;
+
+        int width = (int)SlotWidth;
+        int height = (int)SlotHeight;
+        float bodyWidth = width - Slant;
+        float gradient = width * EdgeGradient;
+
+        Color[] data = new Color[width * height];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float alpha = 0f;
+
+                for (int sy = 0; sy < samples; sy++)
+                {
+                    float py = y + (sy + 0.5f) / samples;
+                    float left = Slant * (1f - py / height);
+                    float right = left + bodyWidth;
+
+                    for (int sx = 0; sx < samples; sx++)
+                    {
+                        float px = x + (sx + 0.5f) / samples;
+
+                        if (px < left || px > right)
+                            continue;
+
+                        float edge = Math.Min(px - left, right - px);
+                        alpha += Calc.Clamp(edge / gradient, 0f, 1f);
+                    }
+                }
+
+                data[y * width + x] = Color.Black * (alpha / (samples * samples));
+            }
+        }
+
+        Texture2D texture = new Texture2D(Engine.Graphics.GraphicsDevice, width, height);
+        texture.SetData(data);
+        return texture;
+    }
+
     private void DrawSlot(float x, float width, float progress)
     {
         if (width <= 0f || progress <= 0f)
             return;
 
-        float slant = Math.Min(Slant, width * 0.5f);
-        float bodyWidth = width - slant;
+        // 宽度动画直接横向缩放同一张软边贴图，边缘渐变会一起收放
+        Draw.SpriteBatch.Draw(
+            SlotTexture,
+            new Vector2(x, OffsetY),
+            null,
+            Color.White * (SlotAlpha * progress),
+            0f,
+            Vector2.Zero,
+            new Vector2(width / SlotWidth, 1f),
+            SpriteEffects.None,
+            0f);
+    }
 
-        if (bodyWidth <= 0f)
-            return;
-
-        Color color = Color.Black * (slotAlpha * progress);
-        int rows = Math.Max(1, (int)MathF.Round(slotHeight));
-        float rowHeight = slotHeight / rows;
-
-        for (int row = 0; row < rows; row++)
+    /// <summary>
+    /// 数字用的字体：优先取 Renogare 的 192px 图集，缩小绘制比把 64px 图集放大清晰得多。
+    /// 当前语言不是 Renogare 时按需加载它（数字都是 ASCII，不受语言影响）。
+    /// </summary>
+    private static PixelFontSize DigitFont
+    {
+        get
         {
-            float offset = rows > 1 ? slant * (1f - (float)row / (rows - 1f)) : 0f;
-            Draw.Rect(x + offset, offsetY + row * rowHeight, bodyWidth, rowHeight + 0.5f, color);
+            if (digitFont == null)
+            {
+                PixelFont font = Fonts.Get("Renogare");
+
+                if (font == null)
+                {
+                    try
+                    {
+                        font = Fonts.Load("Renogare");
+                    }
+                    catch
+                    {
+                        font = null;
+                    }
+                }
+
+                digitFont = font != null ? font.Get(192f) : ActiveFont.FontSize;
+            }
+
+            return digitFont;
         }
     }
 
     private void DrawIndex(int index, float centerX, float centerY, float alpha)
     {
         string text = index.ToString();
-        Vector2 size = ActiveFont.Measure(text);
-        float scale = size.Y > 0f ? slotHeight * 0.72f * textScale / size.Y : 1f;
+        PixelFontSize font = DigitFont;
+        Vector2 size = font.Measure(text);
+        float scale = size.Y > 0f ? SlotHeight * 0.72f * TextScale / size.Y : 1f;
 
-        ActiveFont.DrawOutline(
+        font.Draw(
             text,
             new Vector2(centerX, centerY),
             new Vector2(0.5f, 0.5f),
             Vector2.One * scale,
             Color.White * alpha,
+            0f,
+            Color.Transparent,
             Stroke,
             Color.Black * alpha);
     }

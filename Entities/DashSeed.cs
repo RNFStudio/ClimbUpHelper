@@ -9,23 +9,21 @@ namespace ChroniaHelper.Entities;
 /// <summary>
 /// 冲刺籽：沿用原版草莓籽的行为，但不会与草莓合并。
 ///
-/// 拾取后跟随玩家，站在移动实体上会跟着一起移动，落地按原版时序掉落并飞回原位。
+/// 拾取后跟随玩家，站在移动实体上会跟着一起移动；与原版草莓一致，籽只在玩家站在
+/// 安全地面时才会掉落（墙面、天花板等其它表面不会），没有拾取保护或停留计时。
 /// 籽自带一笔冲刺额度：玩家自己已经没有冲刺、却仍在按冲刺键时，由最先捡起的那颗籽
 /// 替玩家发起一次冲刺，每发起一次扣一点额度，额度归零这颗籽掉落，由下一颗籽接上。
 ///
-/// 面板填写 seedDashes 可调整每颗籽的额度；序号按房间内的摆放顺序从 0 开始自动生成，
-/// 头顶编号与持有队列 HUD 都用这个序号。
+/// 面板填写 seedDashes 可调整每颗籽的额度；面板填写 index 指定编号（0-9）。
+/// 编号画在籽的重生点上方、不跟随籽移动，场景里的编号与持有队列 HUD 都用这个值。
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/DashSeed")]
 [ExA.Credits("Inspiration and code provided by RogerNF")]
 public class DashSeed : BaseEntity
 {
-    /// <summary>拾取后不会掉落的时间。</summary>
-    private const float LoseDelay = 0.25f;
-
-    /// <summary>落地后掉落所需的停留时间。</summary>
-    private const float LoseGraceTime = 0.15f;
+    /// <summary>编号贴图相对籽中心的纵向偏移（16x16 的帧正好摆在籽的正上方）。</summary>
+    private const float IndexOffsetY = -12f;
 
     private Sprite sprite;
     private Follower follower;
@@ -40,8 +38,17 @@ public class DashSeed : BaseEntity
     private Player player;
     private Vector2 start;
 
-    /// <summary>房间内的序号，用于相位错开与音效 count 参数。</summary>
+    /// <summary>上一帧玩家是否在水里，用于排除「从水里起跳」的向上速度判定。</summary>
+    private bool wasInWater;
+
+    /// <summary>面板指定的编号（0-9），用于相位错开、音效 count 参数与头顶编号。</summary>
     private int seedIndex;
+
+    /// <summary>编号数字贴图：numbers.png 的 10 帧，按 1-9-0 的顺序排列。</summary>
+    private MTexture[] indexDigits;
+
+    /// <summary>钉在重生点上方的编号，不随籽移动。</summary>
+    private SeedIndexLabel label;
 
     /// <summary>面板指定的每颗籽的冲刺额度。</summary>
     private int seedDashes = 1;
@@ -49,11 +56,8 @@ public class DashSeed : BaseEntity
     /// <summary>这颗籽剩余的冲刺额度，耗尽即掉落。</summary>
     private int remainingDashes;
 
-    private float canLoseTimer;
-    private float loseTimer;
-    private bool losing;
-
-    private float returnTimeMin, returnTimeMax;
+    /// <summary>掉落后回到原位前的固定延迟。</summary>
+    private float returnTime;
 
     private int initDepth;
     private int depthOnTouch = -1000000;
@@ -62,7 +66,7 @@ public class DashSeed : BaseEntity
     private string particlePath;
     private CColor spriteColor, particleColor1, particleColor2;
 
-    /// <summary>房间内有多颗籽时才显示头顶编号。</summary>
+    /// <summary>房间里有多颗籽时才显示头顶编号。</summary>
     private bool multipleSeeds;
 
     /// <summary>留在原位的虚线位置指示。</summary>
@@ -70,21 +74,13 @@ public class DashSeed : BaseEntity
     private string outlineTexture;
     private int outlineDepth;
 
-    /// <summary>头顶编号标签（HUD 层）。</summary>
-    private IndexLabel label;
-
-    /// <summary>房间内的持有队列 HUD，用来读取头顶编号的显隐设置。</summary>
-    private DashSeedInventoryHUD hud;
-
-    /// <summary>是否已经确认过房间里的持有队列 HUD。</summary>
-    private bool hudEnsured;
-
     public DashSeed(EntityData data, Vector2 offset)
         : base(data, offset)
     {
         start = Position;
 
         Depth = initDepth = data.Int("depth", -100);
+        seedIndex = Math.Clamp(data.Int("index", 0), 0, 9);
         seedDashes = data.Int("seedDashes", 1);
         remainingDashes = seedDashes;
         outlineTexture = data.Attr("outlineTexture", "ClimbUpHelper/DashSeed/seed_outline");
@@ -93,7 +89,9 @@ public class DashSeed : BaseEntity
 
         Add(follower = new Follower(OnGainLeader, OnLoseLeader));
         follower.FollowDelay = 0.2f;
-        follower.PersistentFollow = data.Bool("persistent", false);
+
+        // 切房间时籽不保留，让 HUD 播放格子收起的动画
+        follower.PersistentFollow = false;
 
         Add(new StaticMover
         {
@@ -150,25 +148,53 @@ public class DashSeed : BaseEntity
         particleColor1 = data.PackColor("particleColor1", CColor.White);
         particleColor2 = data.PackColor("particleColor2", new CColor(Color.Gray));
 
-        returnTimeMax = data.Float("returnTimeMax", 0.4f);
-        returnTimeMin = data.Float("returnTimeMin", 0.2f);
+        returnTime = data.Float("returnTime", 0.3f).ClampMin(0f);
     }
 
-    /// <summary>该籽的序号：按房间内的摆放顺序从 0 开始，供头顶编号与持有队列 HUD 使用。</summary>
+    /// <summary>
+    /// 该籽的编号：面板填写 index（0-9）的值，也是持有队列 HUD 显示的编号。
+    /// </summary>
     public int Index => seedIndex;
+
+    /// <summary>房间里是否有多颗籽；只有多颗时才出现在持有队列 HUD 里。</summary>
+    public bool MultipleSeedsInRoom => multipleSeeds;
+
+    /// <summary>籽的重生点世界坐标；贴在移动平台上时会跟着平台走。</summary>
+    private Vector2 Origin => start + (attached?.Position ?? Vector2.Zero);
 
     public override void Added(Scene scene)
     {
         base.Added(scene);
 
-        seedIndex = scene.Tracker.CountEntities<DashSeed>() - 1;
-
         marker = new OriginMarker(GFX.Game[outlineTexture], start, outlineDepth);
         scene.Add(marker);
 
-        // 编号画在 HUD 画布上，避免在 Gameplay 画布上被放大发糊
-        label = new IndexLabel(Index);
-        scene.Add(label);
+        indexDigits = LoadIndexDigits();
+
+        if (indexDigits != null)
+        {
+            label = new SeedIndexLabel(indexDigits[FrameFor(seedIndex)], Origin + new Vector2(0f, IndexOffsetY), initDepth);
+            scene.Add(label);
+        }
+
+        // 房间里有籽就有 HUD：由本房间的第一颗籽创建；HUD 是 Global，切房间、死亡重载都不会被卸载
+        if (IsFirstSeedInRoom(scene) && !DashSeedInventoryHUD.ExistsIn(scene))
+            scene.Add(new DashSeedInventoryHUD());
+    }
+
+    /// <summary>本籽是否是当前房间里第一颗被加入场景的籽。</summary>
+    private bool IsFirstSeedInRoom(Scene scene)
+    {
+        if (scene is not Level level)
+            return true;
+
+        foreach (Entity entity in scene.Entities)
+        {
+            if (entity is DashSeed other && other != this && level.IsInBounds(other.Origin))
+                return false;
+        }
+
+        return true;
     }
 
     public override void Awake(Scene scene)
@@ -193,19 +219,28 @@ public class DashSeed : BaseEntity
 
         burstParticle = CreateBurstParticle(particlePath, particleColor1.Parsed(), particleColor2.Parsed());
 
-        multipleSeeds = scene.Tracker.CountEntities<DashSeed>() > 1;
+        // 只数当前房间里的籽。切房间时 Level 会先加载新房间、过场结束才卸载旧房间，
+        // 这时 Tracker 里还留着上一房间的籽；直接数会把单籽房间误判成多籽。
+        multipleSeeds = CountSeedsInRoom(scene) > 1;
+    }
+
+    /// <summary>数当前房间里的籽：只统计重生点落在本房间范围内的那些。</summary>
+    private int CountSeedsInRoom(Scene scene)
+    {
+        int count = 0;
+
+        foreach (Entity entity in scene.Tracker.GetEntities<DashSeed>())
+        {
+            if (entity is DashSeed seed && level.IsInBounds(seed.Origin))
+                count++;
+        }
+
+        return count;
     }
 
     public override void Update()
     {
         base.Update();
-
-        // 房间里没有手动放置的持有队列 HUD 时补一个默认的
-        if (!hudEnsured)
-        {
-            hudEnsured = true;
-            DashSeedInventoryHUD.EnsureIn(Scene);
-        }
 
         UpdateLosing();
         UpdateDash();
@@ -213,57 +248,72 @@ public class DashSeed : BaseEntity
         // 籽被带走后，原位留下一圈位置指示
         if (marker != null)
         {
-            marker.Position = start + (attached?.Position ?? Vector2.Zero);
+            marker.Position = Origin;
             marker.Visible = follower.HasLeader || !Visible;
         }
 
-        if (hud == null)
-            hud = Scene?.Tracker?.GetEntity<DashSeedInventoryHUD>();
-
-        // 头顶编号：世界坐标换算成 HUD 画布坐标，显隐由持有队列 HUD 的设置决定
+        // 编号钉在重生点上方：位置跟重生点走，不跟籽走；深度固定为籽的初始深度
         if (label != null)
         {
-            label.Visible = Visible && multipleSeeds && (hud?.ShowSeedIndex ?? true);
-
-            if (label.Visible)
-            {
-                label.ScreenPosition = level.WorldToScreen(Position + new Vector2(0f, -4f));
-            }
+            label.Position = Origin + new Vector2(0f, IndexOffsetY);
+            label.SetShown(multipleSeeds);
         }
 
         sprite.Position = new Vector2(sine.Value * 2f, sine.ValueOverTwo) + shaker.Value;
     }
 
+    /// <summary>numbers.png 的顺序是 1-9-0：数字 1 在第 0 帧，数字 0 在第 9 帧。</summary>
+    private static int FrameFor(int index)
+    {
+        int digit = ((index % 10) + 10) % 10;
+        return digit == 0 ? 9 : digit - 1;
+    }
+
+    /// <summary>把 numbers.png 切成 10 个数字帧；贴图缺失时返回 null，编号不显示。</summary>
+    private static MTexture[] LoadIndexDigits()
+    {
+        const string path = "ClimbUpHelper/DashSeed/numbers";
+
+        if (!GFX.Game.Has(path))
+            return null;
+
+        MTexture sheet = GFX.Game[path];
+        int frameWidth = sheet.Width / 10;
+
+        MTexture[] digits = new MTexture[10];
+
+        for (int i = 0; i < digits.Length; i++)
+        {
+            digits[i] = sheet.GetSubtexture(i * frameWidth, 0, frameWidth, sheet.Height);
+        }
+
+        return digits;
+    }
+
     private void UpdateLosing()
     {
-        // 拾取后先等保护时间过去，之后才允许因落地掉落
-        if (canLoseTimer > 0f)
-        {
-            canLoseTimer -= Engine.DeltaTime;
-        }
-        else if (follower.HasLeader && player.LoseShards)
-        {
-            losing = true;
-        }
-
-        // 连续在地累计到 LoseGraceTime，或离地向上移动时掉落
-        if (!losing)
+        if (!follower.HasLeader || player == null)
             return;
 
-        if (loseTimer <= 0f || player.Speed.Y < 0f)
-        {
+        bool inWater = player.CollideCheck<Water>();
+
+        // 与原版草莓的收集条件一致：OnSafeGround（安全地面）+ OnGround（脚下真的有 Solid / JumpThru）。
+        // 水虽然也是 safe ground，但不算地面，所以游泳、水中冲刺这些帧 OnGround 为 false，籽不会误掉。
+        bool onSafeGround = player.OnSafeGround && player.OnGround();
+
+        // 原版草莓籽在玩家「接触过安全地面后起跳」的向上速度时也会掉。
+        // OnSafeGround 是 Player.Update 开头的快照，起跳那一帧它仍然是 true，正好能抓到这一帧；
+        // OnSafeGround 为 false 时（非 safe ground）这条不生效；水里用当前/上一帧的水体碰撞排除，
+        // 避免游泳上浮或从水里起跳时误掉。
+        bool jumpedFromSafeGround = player.Speed.Y < 0f
+            && player.OnSafeGround
+            && !inWater
+            && !wasInWater;
+
+        if (onSafeGround || jumpedFromSafeGround)
             player.Leader.LoseFollower(follower);
-            losing = false;
-        }
-        else if (player.LoseShards)
-        {
-            loseTimer -= Engine.DeltaTime;
-        }
-        else
-        {
-            loseTimer = LoseGraceTime;
-            losing = false;
-        }
+
+        wasInWater = inWater;
     }
 
     private void UpdateDash()
@@ -298,10 +348,24 @@ public class DashSeed : BaseEntity
     /// <summary>是否到了可以替玩家发起冲刺的时机。</summary>
     private bool CanSeedDash()
     {
-        // 只在原版会判定 CanDash 的状态里接管，冲刺中 / 飞行器 / 梦冲等状态不介入
+        // 只接管理论上能起冲的状态（Normal / Climb / 红冲 / 受击 / 发射 / 星飞）。
+        // 冲刺中、梦冲、飞行器、过场等状态不接管：否则会在一个本来不允许冲刺的状态里
+        // 硬插一次冲刺（例如冲刺中途再甩一次、打断梦冲）。
         int state = player.StateMachine.State;
 
-        if (state != 0 && state != 1 && state != 3 && state != 5 && state != 6 && state != 7 && state != 19)
+        if (state is not (Player.StNormal
+            or Player.StClimb
+            or Player.StRedDash
+            or Player.StHitSquash
+            or Player.StLaunch
+            or Player.StStarFly))
+        {
+            return false;
+        }
+
+        // 水里一律用玩家自己的冲刺（水中冲刺不消耗冲刺、会持续回冲），籽不介入；
+        // 只看状态不够——水面 / 浅水时状态可能还是 StNormal。
+        if (player.CollideCheck<Water>())
         {
             return false;
         }
@@ -339,8 +403,6 @@ public class DashSeed : BaseEntity
     private void OnGainLeader()
     {
         wiggler.Start();
-        canLoseTimer = LoseDelay;
-        loseTimer = LoseGraceTime;
         remainingDashes = seedDashes;
     }
 
@@ -367,7 +429,7 @@ public class DashSeed : BaseEntity
         Visible = false;
         Depth = initDepth;
 
-        yield return RandomUtils.RandomFloat(returnTimeMin, returnTimeMax, seedIndex).ClampMin(0);
+        yield return returnTime;
 
         Audio.Play(appearSfx, Position, "count", (float)seedIndex);
 
@@ -401,32 +463,66 @@ public class DashSeed : BaseEntity
         RotationMode = ParticleType.RotationModes.SameAsDirection
     };
 
-    /// <summary>跑在 HUD 画布上的编号标签，位置由所在籽的世界坐标换算而来。</summary>
-    private sealed class IndexLabel : Entity
+    /// <summary>画在重生点上方的编号贴图，不随籽移动，籽消失飞回期间也保持显示。</summary>
+    private sealed class SeedIndexLabel : Entity
     {
-        /// <summary>数字在世界里的大致高度，换算到 HUD 画布时乘 6。</summary>
-        private const float WorldHeight = 10f;
+        /// <summary>上下浮动的幅度（世界像素）。</summary>
+        private const float BobAmplitude = 2.0f;
 
-        private readonly string text;
+        /// <summary>上下浮动的角速度（弧度/秒）。</summary>
+        private const float BobSpeed = 2.0f;
 
-        public Vector2 ScreenPosition;
+        /// <summary>淡入所需的时间。</summary>
+        private const float FadeInTime = 0.4f;
 
-        public IndexLabel(int index)
+        private readonly MTexture texture;
+
+        private float timer;
+
+        /// <summary>当前不透明度，0~1。</summary>
+        private float alpha;
+
+        /// <summary>目标状态，由所在籽每帧设置。</summary>
+        private bool shown;
+
+        public SeedIndexLabel(MTexture texture, Vector2 position, int depth)
+            : base(position)
         {
-            text = index.ToString();
-            Tag = Tags.HUD;
-            Depth = -200;
+            this.texture = texture;
+            Depth = depth;
             Visible = false;
+            Collidable = false;
+
+            // 用位置生成相位，避免所有籽的编号同步上下浮动
+            timer = (position.X + position.Y) * 0.05f;
+        }
+
+        /// <summary>是否应该显示；从不可见变为可见时会淡入。</summary>
+        public void SetShown(bool value) => shown = value;
+
+        public override void Update()
+        {
+            base.Update();
+            timer += Engine.DeltaTime;
+
+            // 切房间的过场结束时新的籽已经加进来了；等过场结束再开始淡入，
+            // 否则淡入会被转场画面盖住，看起来还是直接出现。
+            if (Scene is Level level && level.Transitioning)
+                return;
+
+            alpha = Calc.Approach(alpha, shown ? 1f : 0f, Engine.DeltaTime / FadeInTime);
+            Visible = alpha > 0f;
         }
 
         public override void Render()
         {
             base.Render();
 
-            Vector2 size = ActiveFont.Measure(text);
-            float scale = size.Y > 0f ? WorldHeight * 6f / size.Y : 1f;
+            if (alpha <= 0f)
+                return;
 
-            ActiveFont.DrawOutline(text, ScreenPosition, new Vector2(0.5f, 1f), Vector2.One * scale, Color.White, 2f, Color.Black);
+            float bob = MathF.Sin(timer * BobSpeed) * BobAmplitude;
+            texture.DrawCentered(Position + new Vector2(0f, bob), Color.White * alpha);
         }
     }
 

@@ -1,20 +1,16 @@
 using Celeste.Mod.Entities;
-using MonoMod.Utils;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// While the player is inside any SorbetHelper ResizableWaterfall in this room, they cannot grab or
-/// climb, matching the effect of CrystallineHelper's NoGrabTrigger: a <see cref="ClimbBlocker"/>
-/// stops climbing from being started, and the ClimbUpdate hook kicks the player back to normal if
-/// they are somehow already climbing.
+/// While the player is inside any <see cref="Waterfall"/> in this room, they cannot grab or climb:
+/// a <see cref="ClimbBlocker"/> stops climbing from being started, and the ClimbUpdate hook plus a
+/// per-frame check kick the player back to normal if they are already climbing.
 /// </summary>
 [CustomEntity("ChroniaHelper/WaterfallNoGrabController")]
 public sealed class WaterfallNoGrabController : Entity
 {
-    private readonly ConditionalWeakTable<Entity, DynamicData> dynamicDataCache = new();
     private readonly List<Rectangle> volumes = new();
     private readonly List<Rectangle> scratch = new();
     private readonly int inset;
@@ -46,6 +42,7 @@ public sealed class WaterfallNoGrabController : Entity
     {
         On.Celeste.Player.ClimbUpdate += Player_ClimbUpdate;
     }
+
     [ChroniaHelper.Cores.ExtendedAttributes.UnloadHook]
     public static void Unload()
     {
@@ -82,6 +79,30 @@ public sealed class WaterfallNoGrabController : Entity
     {
         base.Update();
         UpdateColliderIfChanged();
+
+        // 强制松开：ClimbBlocker 只能阻止「开始抓」，已经抓着的玩家会被 ClimbUpdate 一直保持。
+        // 这里在 Player 之前（Depth 1 > 0）直接检查并切回 StNormal，覆盖被移动实体带进瀑布的情况。
+        ForceReleaseGrabInside();
+    }
+
+    private void ForceReleaseGrabInside()
+    {
+        if (Collider == null)
+            return;
+
+        Player player = Scene?.Tracker?.GetEntity<Player>();
+
+        if (player == null || player.Dead || player.StateMachine.State != Player.StClimb)
+            return;
+
+        if (!player.CollideCheck(this))
+            return;
+
+        if (liftBoostProperty?.GetValue(player) is Vector2 liftBoost)
+            player.Speed += liftBoost;
+
+        // 切回普通状态会走 ClimbEnd，抓取立即松开；这一帧的 ClimbBlocker 会阻止重新抓回去
+        player.StateMachine.State = Player.StNormal;
     }
 
     private void UpdateColliderIfChanged()
@@ -90,8 +111,22 @@ public sealed class WaterfallNoGrabController : Entity
 
         foreach (Entity entity in Scene.Entities)
         {
-            if (entity.GetType().ToString() == "Celeste.Mod.SorbetHelper.Entities.ResizableWaterfall" && TryGetVolume(entity, out Rectangle volume))
-                scratch.Add(volume);
+            if (entity is not Waterfall waterfall || !waterfall.Active)
+                continue;
+
+            // The waterfall occupies [X, X + Width) x [Y, Y + Height); shrink it horizontally on
+            // both sides for a bit of tolerance at the edges.
+            float judgedWidth = waterfall.Width - inset * 2f;
+            float judgedHeight = waterfall.RenderedHeight;
+
+            if (judgedWidth <= 0f || judgedHeight <= 0f)
+                continue;
+
+            scratch.Add(new Rectangle(
+                (int)MathF.Floor(waterfall.X + inset),
+                (int)MathF.Floor(waterfall.Y),
+                (int)MathF.Ceiling(judgedWidth),
+                (int)MathF.Ceiling(judgedHeight)));
         }
 
         if (SameVolumes(scratch, volumes))
@@ -107,6 +142,7 @@ public sealed class WaterfallNoGrabController : Entity
         }
 
         Collider[] colliders = new Collider[volumes.Count];
+
         for (int i = 0; i < volumes.Count; i++)
         {
             Rectangle volume = volumes[i];
@@ -114,42 +150,6 @@ public sealed class WaterfallNoGrabController : Entity
         }
 
         Collider = new ColliderList(colliders);
-    }
-
-    private bool TryGetVolume(Entity waterfall, out Rectangle volume)
-    {
-        volume = default;
-
-        if (!waterfall.Collidable || !waterfall.Active)
-            return false;
-
-        if (!dynamicDataCache.TryGetValue(waterfall, out DynamicData data))
-        {
-            data = DynamicData.For(waterfall);
-            dynamicDataCache.Add(waterfall, data);
-        }
-
-        // width comes from EntityData.Width; height is computed in Awake by probing downwards, so
-        // the waterfall "droops" below its single placement point and both are needed.
-        float width = ReadFloat(data, "width") ?? 0f;
-        float height = ReadFloat(data, "height") ?? 0f;
-
-        if (width <= 0f || height <= 0f)
-            return false;
-
-        // The waterfall occupies [X, X + width) x [Y, Y + height); shrink it horizontally on both
-        // sides for a bit of tolerance at the edges.
-        float judgedWidth = width - inset * 2f;
-        if (judgedWidth <= 0f)
-            return false;
-
-        volume = new Rectangle(
-            (int)MathF.Floor(waterfall.X + inset),
-            (int)MathF.Floor(waterfall.Y),
-            (int)MathF.Ceiling(judgedWidth),
-            (int)MathF.Ceiling(height));
-
-        return true;
     }
 
     private static bool SameVolumes(List<Rectangle> a, List<Rectangle> b)
@@ -165,13 +165,4 @@ public sealed class WaterfallNoGrabController : Entity
 
         return true;
     }
-
-    private static float? ReadFloat(DynamicData data, string name)
-        => data.Get(name) switch
-        {
-            float f => f,
-            int i => i,
-            double d => (float)d,
-            _ => null,
-        };
 }

@@ -8,7 +8,7 @@ seed.placements = {
     name = "seed",
     data = {
         depth = -100,
-        persistent = false,
+        index = 0,
         sprite = "ghostberrySeed",
         spriteColor = "ffffffff",
         --wiggleDuration = 0.5,
@@ -27,8 +27,7 @@ seed.placements = {
         particleSprite = "particles/shatter",
         particleColor1 = "ffffffff",
         particleColor2 = "808080ff",
-        returnTimeMax = 0.4,
-        returnTimeMin = 0.2,
+        returnTime = 0.3,
         --seedDashes = 1,
     },
 }
@@ -36,7 +35,7 @@ seed.placements = {
 --[[
 seed.fieldOrder = {
     "_x", "_y", "x", "y", "_id", "_name",
-    "sprite", "spriteColor", "persistent", "depth",
+    "sprite", "spriteColor", "depth",
     "wiggleDuration", "wiggleFrequency", "waveFrequency",
     "bloomAlpha", "bloomRadius", "lightColor", "lightStartFade", "lightEndFade",
     "pulseSfx", "touchSfx", "poofSfx", "appearSfx",
@@ -46,6 +45,11 @@ seed.fieldOrder = {
 
 seed.fieldInformation = {
     depth = require("mods").requireFromPlugin("helpers.field_options", "ChroniaHelper").depths,
+    index = {
+        fieldType = "integer",
+        minimumValue = 0,
+        maximumValue = 9,
+    },
     spriteColor = {
         fieldType = "color",
         useAlpha = true,

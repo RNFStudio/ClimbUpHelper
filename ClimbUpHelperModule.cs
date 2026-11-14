@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace ClimbUpHelper
 {
@@ -27,10 +27,15 @@ namespace ClimbUpHelper
 
         public override void Load()
         {
+            // ChroniaHelper 的 [LoadHook] 只扫描它自己的程序集（LoadingManager 用的是
+            // Assembly.GetExecutingAssembly()），ClimbUpHelper 里的 [LoadHook] 不会被执行，
+            // 所以这里用标准 Everest 模块钩子注册背景 bloom。
+            On.Celeste.BackdropRenderer.Render += ChroniaHelper.Backdrops.BloomBackdrop.OnBackdropRender;
         }
 
         public override void Unload()
         {
+            On.Celeste.BackdropRenderer.Render -= ChroniaHelper.Backdrops.BloomBackdrop.OnBackdropRender;
         }
     }
 }
