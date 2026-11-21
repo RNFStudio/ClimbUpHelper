@@ -8,7 +8,7 @@ seed.placements = {
     name = "seed",
     data = {
         depth = -100,
-        index = 0,
+        petals = 0,
         sprite = "ghostberrySeed",
         spriteColor = "ffffffff",
         --wiggleDuration = 0.5,
@@ -45,10 +45,9 @@ seed.fieldOrder = {
 
 seed.fieldInformation = {
     depth = require("mods").requireFromPlugin("helpers.field_options", "ChroniaHelper").depths,
-    index = {
+    petals = {
         fieldType = "integer",
         minimumValue = 0,
-        maximumValue = 9,
     },
     spriteColor = {
         fieldType = "color",

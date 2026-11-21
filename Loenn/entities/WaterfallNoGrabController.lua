@@ -11,7 +11,7 @@ controller.placements = {
         data = {
             --width = 8,
             --height = 8,
-            inset = 1
+            inset = 2
         }
     }
 }

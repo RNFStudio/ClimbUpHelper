@@ -26,7 +26,7 @@ public sealed class WaterfallNoGrabController : Entity
 
         // shrink the detection area by this many pixels on each side, so barely touching the edge
         // of a waterfall does not count as being inside it
-        inset = Math.Max(0, data.Int("inset", 1));
+        inset = Math.Max(0, data.Int("inset", 2));
 
         // Same component CrystallineHelper's NoGrabTrigger adds. It only has an effect because this
         // entity's collider below covers the waterfall volumes.

@@ -45,7 +45,7 @@ public sealed class Waterfall : Entity
         rippleStrength = Math.Max(0f, data.Float("ripple_strength", 0.75f));
         fillColor = data.PackColor("fill_color", new CColor(Color.LightSkyBlue, 0.3f)).Parsed();
         outlineColor = data.PackColor("outline_color", new CColor(Color.LightSkyBlue, 0.8f)).Parsed();
-        Depth = data.Int("depth", -9999);
+        Depth = data.Int("depth", -49900);
         Tag = Tags.TransitionUpdate;
 
         Add(new DisplacementRenderHook(RenderDisplacement));

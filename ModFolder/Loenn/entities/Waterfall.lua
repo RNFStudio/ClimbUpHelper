@@ -15,7 +15,7 @@ waterfall.placements = {
         fill_color = "87cefa4d",
         outline_color = "87cefacc",
         ripple_strength = 0.75,
-        depth = -9999,
+        depth = -49900,
     },
 }
 
@@ -38,13 +38,11 @@ waterfall.fieldInformation = {
         fieldType = "number",
         minimumValue = 0.0,
     },
-    depth = {
-        fieldType = "integer",
-    },
+    depth = require("mods").requireFromPlugin("helpers.field_options", "ChroniaHelper").depths,
 }
 
 waterfall.depth = function(room, entity)
-    return entity.depth or -9999
+    return entity.depth or -49900
 end
 
 waterfall.sprite = function(room, entity)

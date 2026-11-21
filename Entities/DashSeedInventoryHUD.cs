@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 持有队列显示：屏幕中上方一排软边平行四边形格子，按玩家身上跟随的冲刺籽顺序显示编号。
+/// 持有队列显示：屏幕中上方一排软边平行四边形格子，按玩家身上跟随的冲刺籽顺序显示花瓣数量。
 /// 最先捡起的那颗在第一格；籽被消耗或掉落时，对应格子收起。
 ///
 /// 现在是 DashSeed 的内置功能，也是整个 Level 全局唯一的一份：
@@ -54,7 +54,7 @@ public sealed class DashSeedInventoryHUD : Entity
 
     private sealed class Slot
     {
-        public int Index;
+        public DashSeed Seed;
         public float Progress;
         public float From;
         public float To = 1f;
@@ -64,9 +64,9 @@ public sealed class DashSeedInventoryHUD : Entity
 
     private readonly List<Slot> slots = new();
 
-    private readonly List<int> activeIndices = new();
+    private readonly List<DashSeed> activeSeeds = new();
 
-    private readonly List<int> queue = new();
+    private readonly List<DashSeed> queue = new();
 
     private readonly List<float> slotWidths = new();
 
@@ -142,9 +142,9 @@ public sealed class DashSeedInventoryHUD : Entity
 
             float textAlpha = Math.Max(2f * progress - 1f, 0f);
 
-            if (textAlpha > 0f)
+            if (textAlpha > 0f && slot.Seed != null && slot.Seed.Petals > 0)
             {
-                DrawIndex(slot.Index, x + width / 2f, OffsetY + SlotHeight / 2f, textAlpha);
+                DrawNumber(slot.Seed.Petals, x + width / 2f, OffsetY + SlotHeight / 2f, textAlpha);
             }
 
             x += width;
@@ -168,9 +168,9 @@ public sealed class DashSeedInventoryHUD : Entity
 
         foreach (Follower follower in player.Leader.Followers)
         {
-            // 房间里只有这一颗籽时不进 HUD，自然也没有后续的收起动画
-            if (follower.Entity is DashSeed seed && seed.MultipleSeedsInRoom)
-                queue.Add(seed.Index);
+            // 花瓣数量为 0 的籽不进 HUD
+            if (follower.Entity is DashSeed seed && seed.Petals > 0)
+                queue.Add(seed);
         }
     }
 
@@ -179,23 +179,23 @@ public sealed class DashSeedInventoryHUD : Entity
         BuildQueue();
 
         // 未在收起的格子对应的编号，队尾应当与队列的队首重合
-        activeIndices.Clear();
+        activeSeeds.Clear();
 
         foreach (Slot slot in slots)
         {
             if (!slot.Closing)
-                activeIndices.Add(slot.Index);
+                activeSeeds.Add(slot.Seed);
         }
 
         int overlap = 0;
 
-        for (int s = Math.Min(activeIndices.Count, queue.Count); s > 0; s--)
+        for (int s = Math.Min(activeSeeds.Count, queue.Count); s > 0; s--)
         {
             bool match = true;
 
             for (int i = 0; i < s; i++)
             {
-                if (activeIndices[activeIndices.Count - s + i] != queue[i])
+                if (activeSeeds[activeSeeds.Count - s + i] != queue[i])
                 {
                     match = false;
                     break;
@@ -210,7 +210,7 @@ public sealed class DashSeedInventoryHUD : Entity
         }
 
         // 队列变短：前面的格子开始收起
-        int popCount = activeIndices.Count - overlap;
+        int popCount = activeSeeds.Count - overlap;
         int activeIndex = 0;
 
         for (int popped = 0; popped < popCount && activeIndex < slots.Count; activeIndex++)
@@ -234,7 +234,7 @@ public sealed class DashSeedInventoryHUD : Entity
         {
             slots.Add(new Slot
             {
-                Index = queue[i],
+                Seed = queue[i],
                 Progress = 0f,
                 From = 0f,
                 To = 1f,
@@ -356,9 +356,9 @@ public sealed class DashSeedInventoryHUD : Entity
         }
     }
 
-    private void DrawIndex(int index, float centerX, float centerY, float alpha)
+    private void DrawNumber(int petals, float centerX, float centerY, float alpha)
     {
-        string text = index.ToString();
+        string text = petals.ToString();
         PixelFontSize font = DigitFont;
         Vector2 size = font.Measure(text);
         float scale = size.Y > 0f ? SlotHeight * 0.72f * TextScale / size.Y : 1f;

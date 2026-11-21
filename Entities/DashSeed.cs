@@ -14,17 +14,14 @@ namespace ChroniaHelper.Entities;
 /// 籽自带一笔冲刺额度：玩家自己已经没有冲刺、却仍在按冲刺键时，由最先捡起的那颗籽
 /// 替玩家发起一次冲刺，每发起一次扣一点额度，额度归零这颗籽掉落，由下一颗籽接上。
 ///
-/// 面板填写 seedDashes 可调整每颗籽的额度；面板填写 index 指定编号（0-9）。
-/// 编号画在籽的重生点上方、不跟随籽移动，场景里的编号与持有队列 HUD 都用这个值。
+/// 面板填写 seedDashes 可调整每颗籽的额度；面板填写 petals 指定花瓣数量。
+/// 籽的重生点会用一圈花瓣环显示这个数量，持有队列 HUD 也显示同样的数字。
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/DashSeed")]
 [ExA.Credits("Inspiration and code provided by RogerNF")]
 public class DashSeed : BaseEntity
 {
-    /// <summary>编号贴图相对籽中心的纵向偏移（16x16 的帧正好摆在籽的正上方）。</summary>
-    private const float IndexOffsetY = -12f;
-
     private Sprite sprite;
     private Follower follower;
     private Wiggler wiggler;
@@ -41,14 +38,11 @@ public class DashSeed : BaseEntity
     /// <summary>上一帧玩家是否在水里，用于排除「从水里起跳」的向上速度判定。</summary>
     private bool wasInWater;
 
-    /// <summary>面板指定的编号（0-9），用于相位错开、音效 count 参数与头顶编号。</summary>
-    private int seedIndex;
+    /// <summary>面板指定的花瓣数量（0 表示不显示花瓣/HUD 数字）。</summary>
+    private int seedPetals;
 
-    /// <summary>编号数字贴图：numbers.png 的 10 帧，按 1-9-0 的顺序排列。</summary>
-    private MTexture[] indexDigits;
-
-    /// <summary>钉在重生点上方的编号，不随籽移动。</summary>
-    private SeedIndexLabel label;
+    /// <summary>重生点处的花瓣环，用来显示花瓣数量。</summary>
+    private PetalRing petalRing;
 
     /// <summary>面板指定的每颗籽的冲刺额度。</summary>
     private int seedDashes = 1;
@@ -66,8 +60,8 @@ public class DashSeed : BaseEntity
     private string particlePath;
     private CColor spriteColor, particleColor1, particleColor2;
 
-    /// <summary>房间里有多颗籽时才显示头顶编号。</summary>
-    private bool multipleSeeds;
+    private float bloomAlpha;
+    private float bloomRadius;
 
     /// <summary>留在原位的虚线位置指示。</summary>
     private OriginMarker marker;
@@ -80,7 +74,8 @@ public class DashSeed : BaseEntity
         start = Position;
 
         Depth = initDepth = data.Int("depth", -100);
-        seedIndex = Math.Clamp(data.Int("index", 0), 0, 9);
+        seedPetals = Math.Max(0, data.Int("petals", 0));
+        sfxVariant = Calc.Random.Next(4);
         seedDashes = data.Int("seedDashes", 1);
         remainingDashes = seedDashes;
         outlineTexture = data.Attr("outlineTexture", "ClimbUpHelper/DashSeed/seed_outline");
@@ -123,8 +118,8 @@ public class DashSeed : BaseEntity
         Add(sine = new SineWave(waveFrequency, waveOffset).Randomize());
         Add(shaker = new Shaker(false));
 
-        float bloomAlpha = data.Float("bloomAlpha", 1f);
-        float bloomRadius = data.Float("bloomRadius", 12f);
+        bloomAlpha = data.Float("bloomAlpha", 1f);
+        bloomRadius = data.Float("bloomRadius", 12f);
         Add(new BloomPoint(bloomAlpha, bloomRadius));
 
         CColor lightColor = data.PackColor("lightColor", CColor.White);
@@ -151,13 +146,11 @@ public class DashSeed : BaseEntity
         returnTime = data.Float("returnTime", 0.3f).ClampMin(0f);
     }
 
-    /// <summary>
-    /// 该籽的编号：面板填写 index（0-9）的值，也是持有队列 HUD 显示的编号。
-    /// </summary>
-    public int Index => seedIndex;
+    /// <summary>面板填写的花瓣数量，也是持有队列 HUD 显示的数字。</summary>
+    public int Petals => seedPetals;
 
-    /// <summary>房间里是否有多颗籽；只有多颗时才出现在持有队列 HUD 里。</summary>
-    public bool MultipleSeedsInRoom => multipleSeeds;
+    /// <summary>音效变体：每颗籽在生成时随机取 0~3，和花瓣数量无关。</summary>
+    private int sfxVariant;
 
     /// <summary>籽的重生点世界坐标；贴在移动平台上时会跟着平台走。</summary>
     private Vector2 Origin => start + (attached?.Position ?? Vector2.Zero);
@@ -169,13 +162,10 @@ public class DashSeed : BaseEntity
         marker = new OriginMarker(GFX.Game[outlineTexture], start, outlineDepth);
         scene.Add(marker);
 
-        indexDigits = LoadIndexDigits();
-
-        if (indexDigits != null)
-        {
-            label = new SeedIndexLabel(indexDigits[FrameFor(seedIndex)], Origin + new Vector2(0f, IndexOffsetY), initDepth);
-            scene.Add(label);
-        }
+        // 重生点处用花瓣环显示花瓣数量；透明度、bloom 跟籽本体一致
+        // 运行时构造的环 trigger_range 固定为 0，不会变成触发式绽放
+        petalRing = new PetalRing(Origin, seedPetals, initDepth, spriteColor.alpha, bloomAlpha, bloomRadius);
+        scene.Add(petalRing);
 
         // 房间里有籽就有 HUD：由本房间的第一颗籽创建；HUD 是 Global，切房间、死亡重载都不会被卸载
         if (IsFirstSeedInRoom(scene) && !DashSeedInventoryHUD.ExistsIn(scene))
@@ -202,8 +192,8 @@ public class DashSeed : BaseEntity
         base.Awake(scene);
         level = SceneAs<Level>();
 
-        float phase = 1f - (float)seedIndex / (scene.Tracker.CountEntities<DashSeed>() + 1f);
-        phase = 0.25f + phase * 0.75f;
+        float phase = 1f - (float)seedPetals / (scene.Tracker.CountEntities<DashSeed>() + 1f);
+        phase = Calc.Clamp(0.25f + phase * 0.75f, 0f, 1f);
         sprite.PlayOffset("idle", phase);
 
         // 播到第 19 帧时闪光、发粒子和音效
@@ -211,31 +201,13 @@ public class DashSeed : BaseEntity
         {
             if (Visible && sprite.CurrentAnimationID == "idle" && sprite.CurrentAnimationFrame == 19)
             {
-                Audio.Play(pulseSfx, Position, "count", (float)seedIndex);
+                Audio.Play(pulseSfx, Position, "count", (float)sfxVariant);
                 lightTween.Start();
                 level.Displacement.AddBurst(Position, 0.6f, 8f, 20f, 0.2f);
             }
         };
 
         burstParticle = CreateBurstParticle(particlePath, particleColor1.Parsed(), particleColor2.Parsed());
-
-        // 只数当前房间里的籽。切房间时 Level 会先加载新房间、过场结束才卸载旧房间，
-        // 这时 Tracker 里还留着上一房间的籽；直接数会把单籽房间误判成多籽。
-        multipleSeeds = CountSeedsInRoom(scene) > 1;
-    }
-
-    /// <summary>数当前房间里的籽：只统计重生点落在本房间范围内的那些。</summary>
-    private int CountSeedsInRoom(Scene scene)
-    {
-        int count = 0;
-
-        foreach (Entity entity in scene.Tracker.GetEntities<DashSeed>())
-        {
-            if (entity is DashSeed seed && level.IsInBounds(seed.Origin))
-                count++;
-        }
-
-        return count;
     }
 
     public override void Update()
@@ -252,42 +224,11 @@ public class DashSeed : BaseEntity
             marker.Visible = follower.HasLeader || !Visible;
         }
 
-        // 编号钉在重生点上方：位置跟重生点走，不跟籽走；深度固定为籽的初始深度
-        if (label != null)
-        {
-            label.Position = Origin + new Vector2(0f, IndexOffsetY);
-            label.SetShown(multipleSeeds);
-        }
+        // 花瓣环钉在重生点：位置跟重生点走，不跟籽走
+        if (petalRing != null)
+            petalRing.Position = Origin;
 
         sprite.Position = new Vector2(sine.Value * 2f, sine.ValueOverTwo) + shaker.Value;
-    }
-
-    /// <summary>numbers.png 的顺序是 1-9-0：数字 1 在第 0 帧，数字 0 在第 9 帧。</summary>
-    private static int FrameFor(int index)
-    {
-        int digit = ((index % 10) + 10) % 10;
-        return digit == 0 ? 9 : digit - 1;
-    }
-
-    /// <summary>把 numbers.png 切成 10 个数字帧；贴图缺失时返回 null，编号不显示。</summary>
-    private static MTexture[] LoadIndexDigits()
-    {
-        const string path = "ClimbUpHelper/DashSeed/numbers";
-
-        if (!GFX.Game.Has(path))
-            return null;
-
-        MTexture sheet = GFX.Game[path];
-        int frameWidth = sheet.Width / 10;
-
-        MTexture[] digits = new MTexture[10];
-
-        for (int i = 0; i < digits.Length; i++)
-        {
-            digits[i] = sheet.GetSubtexture(i * frameWidth, 0, frameWidth, sheet.Height);
-        }
-
-        return digits;
     }
 
     private void UpdateLosing()
@@ -393,11 +334,14 @@ public class DashSeed : BaseEntity
 
     private void OnPlayer(Player player)
     {
-        Audio.Play(touchSfx, Position, "count", (float)seedIndex);
+        Audio.Play(touchSfx, Position, "count", (float)sfxVariant);
         this.player = player;
         player.Leader.GainFollower(follower);
         Collidable = false;
         Depth = depthOnTouch;
+
+        // 被拾取时花瓣环缩小、变淡
+        petalRing?.PlayPickupAnimation();
     }
 
     private void OnGainLeader()
@@ -431,7 +375,7 @@ public class DashSeed : BaseEntity
 
         yield return returnTime;
 
-        Audio.Play(appearSfx, Position, "count", (float)seedIndex);
+        Audio.Play(appearSfx, Position, "count", (float)sfxVariant);
 
         Position = start;
         if (attached != null)
@@ -441,6 +385,7 @@ public class DashSeed : BaseEntity
         sprite.Scale = Vector2.One;
         Visible = true;
         Collidable = true;
+        petalRing?.ResetPickupAnimation();
         level.Displacement.AddBurst(Position, 0.2f, 8f, 28f, 0.2f);
     }
 
@@ -462,69 +407,6 @@ public class DashSeed : BaseEntity
         SpeedMultiplier = 1E-05f,
         RotationMode = ParticleType.RotationModes.SameAsDirection
     };
-
-    /// <summary>画在重生点上方的编号贴图，不随籽移动，籽消失飞回期间也保持显示。</summary>
-    private sealed class SeedIndexLabel : Entity
-    {
-        /// <summary>上下浮动的幅度（世界像素）。</summary>
-        private const float BobAmplitude = 2.0f;
-
-        /// <summary>上下浮动的角速度（弧度/秒）。</summary>
-        private const float BobSpeed = 2.0f;
-
-        /// <summary>淡入所需的时间。</summary>
-        private const float FadeInTime = 0.4f;
-
-        private readonly MTexture texture;
-
-        private float timer;
-
-        /// <summary>当前不透明度，0~1。</summary>
-        private float alpha;
-
-        /// <summary>目标状态，由所在籽每帧设置。</summary>
-        private bool shown;
-
-        public SeedIndexLabel(MTexture texture, Vector2 position, int depth)
-            : base(position)
-        {
-            this.texture = texture;
-            Depth = depth;
-            Visible = false;
-            Collidable = false;
-
-            // 用位置生成相位，避免所有籽的编号同步上下浮动
-            timer = (position.X + position.Y) * 0.05f;
-        }
-
-        /// <summary>是否应该显示；从不可见变为可见时会淡入。</summary>
-        public void SetShown(bool value) => shown = value;
-
-        public override void Update()
-        {
-            base.Update();
-            timer += Engine.DeltaTime;
-
-            // 切房间的过场结束时新的籽已经加进来了；等过场结束再开始淡入，
-            // 否则淡入会被转场画面盖住，看起来还是直接出现。
-            if (Scene is Level level && level.Transitioning)
-                return;
-
-            alpha = Calc.Approach(alpha, shown ? 1f : 0f, Engine.DeltaTime / FadeInTime);
-            Visible = alpha > 0f;
-        }
-
-        public override void Render()
-        {
-            base.Render();
-
-            if (alpha <= 0f)
-                return;
-
-            float bob = MathF.Sin(timer * BobSpeed) * BobAmplitude;
-            texture.DrawCentered(Position + new Vector2(0f, bob), Color.White * alpha);
-        }
-    }
 
     /// <summary>留在原位的虚线位置指示，籽被带走时显示。</summary>
     private sealed class OriginMarker : Entity
