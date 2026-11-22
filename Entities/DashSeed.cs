@@ -289,13 +289,16 @@ public class DashSeed : BaseEntity
     /// <summary>是否到了可以替玩家发起冲刺的时机。</summary>
     private bool CanSeedDash()
     {
-        // 只接管理论上能起冲的状态（Normal / Climb / 红冲 / 受击 / 发射 / 星飞）。
+        bool inWater = player.CollideCheck<Water>();
+
+        // 只接管理论上能起冲的状态（Normal / Climb / Swim / 红冲 / 受击 / 发射 / 星飞）。
         // 冲刺中、梦冲、飞行器、过场等状态不接管：否则会在一个本来不允许冲刺的状态里
         // 硬插一次冲刺（例如冲刺中途再甩一次、打断梦冲）。
         int state = player.StateMachine.State;
 
         if (state is not (Player.StNormal
             or Player.StClimb
+            or Player.StSwim
             or Player.StRedDash
             or Player.StHitSquash
             or Player.StLaunch
@@ -304,9 +307,9 @@ public class DashSeed : BaseEntity
             return false;
         }
 
-        // 水里一律用玩家自己的冲刺（水中冲刺不消耗冲刺、会持续回冲），籽不介入；
-        // 只看状态不够——水面 / 浅水时状态可能还是 StNormal。
-        if (player.CollideCheck<Water>())
+        // 水里如果玩家自己还有冲刺（Dashes > 0），优先用水中的冲刺，籽不介入；
+        // 但 Dashes == 0 时（例如序章 inventory）玩家无法冲刺，允许消耗籽发起冲刺。
+        if (inWater && player.Dashes > 0)
         {
             return false;
         }
