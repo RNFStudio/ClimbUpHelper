@@ -4,7 +4,7 @@
     <OutputType>Library</OutputType>
     <ModAssetsFolderName>ModFolder</ModAssetsFolderName>
     <ModAssetsCopyType>copy</ModAssetsCopyType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitCelesteReference>true</ImplicitCelesteReference>
     <!--To copy dependencies file into the output-->
     <EnableDynamicLoading>true</EnableDynamicLoading>

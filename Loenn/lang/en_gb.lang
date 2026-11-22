@@ -1,0 +1,85 @@
+# ========================== Dash Seed
+
+entities.ChroniaHelper/DashSeed.placements.name.seed=Dash Seed
+entities.ChroniaHelper/DashSeed.attributes.description.sprite=Sprite to display for the seed
+entities.ChroniaHelper/DashSeed.attributes.description.spriteColor=Color of the seed sprite
+entities.ChroniaHelper/DashSeed.attributes.description.depth=Render depth of the seed
+entities.ChroniaHelper/DashSeed.attributes.name.petals=Petals
+entities.ChroniaHelper/DashSeed.attributes.description.petals=Number of petals on the seed's petal ring (0 hides the petals and the HUD number).
+entities.ChroniaHelper/DashSeed.attributes.description.wiggleDuration=Duration of the wiggle animation when picked up
+entities.ChroniaHelper/DashSeed.attributes.description.wiggleFrequency=Frequency of the wiggle animation
+entities.ChroniaHelper/DashSeed.attributes.description.waveFrequency=Frequency of the floating sine wave motion
+entities.ChroniaHelper/DashSeed.attributes.description.bloomAlpha=Alpha of the glow bloom
+entities.ChroniaHelper/DashSeed.attributes.description.bloomRadius=Radius of the glow bloom
+entities.ChroniaHelper/DashSeed.attributes.description.lightColor=Color of the vertex light
+entities.ChroniaHelper/DashSeed.attributes.description.lightStartFade=Vertex light start fade distance
+entities.ChroniaHelper/DashSeed.attributes.description.lightEndFade=Vertex light end fade distance
+entities.ChroniaHelper/DashSeed.attributes.description.pulseSfx=Sound played when the seed pulses
+entities.ChroniaHelper/DashSeed.attributes.description.touchSfx=Sound played when the seed is picked up
+entities.ChroniaHelper/DashSeed.attributes.description.poofSfx=Sound played when the seed returns to its origin
+entities.ChroniaHelper/DashSeed.attributes.description.appearSfx=Sound played when the seed reappears
+entities.ChroniaHelper/DashSeed.attributes.description.particleSprite=Particle sprite used for the burst effect
+entities.ChroniaHelper/DashSeed.attributes.description.particleColor1=Primary particle color
+entities.ChroniaHelper/DashSeed.attributes.description.particleColor2=Secondary particle color
+
+# ========================== Waterfall
+
+entities.ChroniaHelper/Waterfall.placements.name.waterfall=Waterfall
+entities.ChroniaHelper/Waterfall.placements.description.waterfall=A resizable waterfall with customizable fill and outline colors. Its bottom connects to the water surface and ripples it, and it distorts the scenery like a vanilla waterfall.
+
+entities.ChroniaHelper/Waterfall.attributes.name.fill_color=Fill Color
+entities.ChroniaHelper/Waterfall.attributes.description.fill_color=Color of the center fill (alpha supported).
+entities.ChroniaHelper/Waterfall.attributes.name.outline_color=Outline Color
+entities.ChroniaHelper/Waterfall.attributes.description.outline_color=Color of the 2px left and right outlines (alpha supported).
+entities.ChroniaHelper/Waterfall.attributes.name.ripple_strength=Ripple Strength
+entities.ChroniaHelper/Waterfall.attributes.description.ripple_strength=Strength of the ripples created on the water surface when the bottom of the waterfall touches water. Default 0.75.
+entities.ChroniaHelper/Waterfall.attributes.name.depth=Depth
+entities.ChroniaHelper/Waterfall.attributes.description.depth=Render depth of the waterfall. Default -9999.
+
+# ========================== Waterfall No-Grab Controller
+
+entities.ChroniaHelper/WaterfallNoGrabController.placements.name.controller=Waterfall No-Grab Controller
+entities.ChroniaHelper/WaterfallNoGrabController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, they cannot grab or climb.
+
+entities.ChroniaHelper/WaterfallNoGrabController.attributes.name.inset=Edge Inset
+entities.ChroniaHelper/WaterfallNoGrabController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall, so barely touching the edge does not count. Default 2.
+
+# ========================== Waterfall No Dash Refill Controller
+
+entities.ChroniaHelper/WaterfallNoDashRefillController.placements.name.controller=Waterfall No Dash Refill Controller
+entities.ChroniaHelper/WaterfallNoDashRefillController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, landing on the ground does not refill dashes.
+
+entities.ChroniaHelper/WaterfallNoDashRefillController.attributes.name.inset=Edge Inset
+entities.ChroniaHelper/WaterfallNoDashRefillController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall. Default 2.
+
+# ========================== Gaussian Blur (background styleground)
+
+style.effects.ChroniaHelper/GaussianBlur.name=Gaussian Blur
+style.effects.ChroniaHelper/GaussianBlur.attribute.mode=Blend Mode
+style.effects.ChroniaHelper/GaussianBlur.description.mode=Additive for a bloom-like glow, Alpha Blend for a plain blurred overlay.
+style.effects.ChroniaHelper/GaussianBlur.attribute.strength=Strength
+style.effects.ChroniaHelper/GaussianBlur.description.strength=How strongly the blurred image is blended in. 0 disables it.
+style.effects.ChroniaHelper/GaussianBlur.attribute.alpha=Alpha
+style.effects.ChroniaHelper/GaussianBlur.description.alpha=Overall opacity of the blur layer (0-1).
+style.effects.ChroniaHelper/GaussianBlur.attribute.blur=Blur
+style.effects.ChroniaHelper/GaussianBlur.description.blur=Blur radius multiplier.
+
+# ========================== Petal Ring
+
+entities.ChroniaHelper/PetalRing.placements.name.petal_ring=Petal Ring
+entities.ChroniaHelper/PetalRing.placements.description.petal_ring=A decorative ring of white oval petals.
+
+entities.ChroniaHelper/PetalRing.attributes.name.radius=Radius
+entities.ChroniaHelper/PetalRing.attributes.description.radius=Radius of the petal ring.
+entities.ChroniaHelper/PetalRing.attributes.name.petal_size=Petal Size
+entities.ChroniaHelper/PetalRing.attributes.description.petal_size=Length of each petal.
+entities.ChroniaHelper/PetalRing.attributes.name.petal_count=Petal Count
+entities.ChroniaHelper/PetalRing.attributes.description.petal_count=Number of petals in the ring.
+entities.ChroniaHelper/PetalRing.attributes.name.rotation_speed=Rotation Speed
+entities.ChroniaHelper/PetalRing.attributes.description.rotation_speed=Rotation speed in degrees per second. Negative values rotate the other way.
+entities.ChroniaHelper/PetalRing.attributes.name.bloom_alpha=Bloom Alpha
+entities.ChroniaHelper/PetalRing.attributes.description.bloom_alpha=Alpha of the vanilla bloom glow (0-1).
+entities.ChroniaHelper/PetalRing.attributes.name.alpha=Alpha
+entities.ChroniaHelper/PetalRing.attributes.description.alpha=Opacity of the petals (0-1).
+entities.ChroniaHelper/PetalRing.attributes.name.depth=Depth
+entities.ChroniaHelper/PetalRing.attributes.description.depth=Render depth. Default -50000 (foreground particles).

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace ClimbUpHelper
 {
@@ -27,10 +27,13 @@ namespace ClimbUpHelper
 
         public override void Load()
         {
+            // 在瀑布里阻止落地回复冲刺（临时把 NoRefills 设为 true，更新后恢复）
+            On.Celeste.Player.Update += ChroniaHelper.Entities.WaterfallNoDashRefillController.Player_Update;
         }
 
         public override void Unload()
         {
+            On.Celeste.Player.Update -= ChroniaHelper.Entities.WaterfallNoDashRefillController.Player_Update;
         }
     }
 }

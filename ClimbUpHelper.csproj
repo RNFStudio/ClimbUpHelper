@@ -1,30 +1,31 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Machine-local overrides (gitignored): custom CelesteRootPath, copy type, etc. -->
+    <Import Project="Local.props" Condition="Exists('Local.props')" />
     <Import Project="CelesteMod.props" />
 
     <PropertyGroup>
+        <AssemblyName>ClimbUpHelper</AssemblyName>
         <RootNamespace>$(AssemblyName)</RootNamespace>
         <LangVersion>preview</LangVersion>
         <Version>1.0.0</Version>
         <TargetFramework>net8.0</TargetFramework>
 
-        <CelesteRootPath>E:/Steam Games/steamapps/common/Celeste</CelesteRootPath>
+        <!-- Celeste install directory (the folder containing Celeste.exe and Celeste.Mod.mm.dll).
+             Defaults to two levels above this project, since the project lives in
+             Celeste/Mods/ClimbUpHelper. Override in Local.props, through an environment
+             variable, or with -p:CelesteRootPath=... when the checkout is kept elsewhere. -->
+        <CelesteRootPath Condition="'$(CelesteRootPath)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../..'))</CelesteRootPath>
 
         <ImplicitUsings>enable</ImplicitUsings>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-        <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-        <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     </PropertyGroup>
 
     <ItemGroup>
         <CelesteModReference Include="ChroniaHelper" />
     </ItemGroup>
 
-    <!--Implement dependencies here in an ItemGroup-->
+    <!-- Additional mod dependencies go here, e.g.
+         <ItemGroup><CelesteModReference Include="SomeHelper" /></ItemGroup> -->
 
     <Import Project="CelesteMod.targets" />
 
