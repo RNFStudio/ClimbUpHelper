@@ -3,9 +3,9 @@ using Celeste.Mod.Entities;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 装饰用花瓣环：一圈白色卵形花瓣（使用 petal.png，贴图方向朝上）。
-/// 花瓣大小 = 0.8 × radius；长度再拉伸到 1.5 倍，长度以根部为锚点缩放。
-/// 可整体旋转，带 bloom；PetalScale 可动态改花瓣大小。
+/// 装饰用花瓣环：一圈白色卵形花瓣，贴图方向朝上，可整体旋转并带 bloom。
+/// 面板属性：radius / petal_size / petal_count / rotation_speed / bloom_alpha / alpha / depth。
+/// PetalScale 可在运行时整体缩放花瓣。
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/PetalRing")]
@@ -13,13 +13,11 @@ public sealed class PetalRing : Entity
 {
     private static MTexture petalTexture;
 
-    /// <summary>拾取/恢复动画的时长。</summary>
+    // 拾取 / 恢复动画的时长
     private const float AnimationDuration = 0.5f;
 
-    /// <summary>拾取/恢复时临时增加的转速（度/秒）。</summary>
+    // 拾取 / 恢复时临时增加的转速（度/秒）及其衰减时间
     private const float SpinBoostAmount = 180f;
-
-    /// <summary>转速加成衰减回 0 所需的时间。</summary>
     private const float SpinBoostDuration = 0.5f;
 
     private readonly float baseRadius;
@@ -90,7 +88,7 @@ public sealed class PetalRing : Entity
     /// <summary>花瓣大小倍率；外部动画可以每帧设置它。</summary>
     public float PetalScale { get; set; } = 1f;
 
-    /// <summary>拾取时播放：半径 8→5，alpha 保持不变，持续 0.5s，ease in out，并临时提高转速。</summary>
+    /// <summary>拾取时播放：环收缩、透明度不变，并短暂提高转速。</summary>
     public void PlayPickupAnimation()
     {
         AnimateTo(5f, baseAlpha, AnimationDuration, true);
@@ -170,8 +168,7 @@ public sealed class PetalRing : Entity
 
         MTexture texture = PetalTexture;
 
-        // 花瓣大小固定为 0.8 × baseRadius：籽的半径缩小时花瓣本身不跟着缩，
-        // 只有环的半径在变；地图上的静态环 radius 本来就不变，所以不受影响。
+        // 花瓣大小固定为 0.8 × baseRadius：籽的半径变化只影响环，不缩花瓣本身
         float currentPetalSize = petalSize;
 
         // 长度 0→1.5 倍，宽度 0→1 倍

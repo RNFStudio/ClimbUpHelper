@@ -22,7 +22,7 @@ public class GaussianBlurBackdrop : Backdrop
     private readonly float blur;
     private readonly float alpha;
 
-    /// <summary>纯加法混合：不受贴图 alpha 影响，直接叠上 tint 后的模糊图像。</summary>
+    // 纯加法混合：不受贴图 alpha 影响，直接叠上 tint 后的模糊图像
     private static readonly BlendState AdditiveBlend = new()
     {
         ColorSourceBlend = Blend.One,

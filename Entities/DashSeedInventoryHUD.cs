@@ -3,53 +3,32 @@ using Microsoft.Xna.Framework.Graphics;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 持有队列显示：屏幕中上方一排软边平行四边形格子，按玩家身上跟随的冲刺籽顺序显示花瓣数量。
-/// 最先捡起的那颗在第一格；籽被消耗或掉落时，对应格子收起。
+/// 持有队列显示：屏幕中上方一排软边平行四边形格子，按籽的跟随顺序显示花瓣数量。
+/// 最先捡起的那颗在第一格；籽被消耗或掉落时对应格子收起。
 ///
-/// 现在是 DashSeed 的内置功能，也是整个 Level 全局唯一的一份：
-/// 房间里有籽时由第一颗籽创建，之后切房间、死亡重载都不会再创建或卸载。
-/// 样式固定，不读取实体属性。
+/// 是 DashSeed 的内置功能，整个 Level 全局唯一：房间里有籽时由第一颗籽创建，
+/// 之后切房间、死亡重载都不再创建或卸载。样式固定，不读实体属性。
 /// </summary>
 [Tracked]
 public sealed class DashSeedInventoryHUD : Entity
 {
-    /// <summary>HUD 画布宽度。</summary>
+    // 布局与样式（格子宽高、间距、斜边、描边都在这里调）
     private const float ScreenWidth = 1920f;
-
-    /// <summary>单个格子的宽度（完全展开时）。</summary>
     private const float SlotWidth = 96f;
-
-    /// <summary>格子高度。</summary>
     private const float SlotHeight = 36f;
-
-    /// <summary>格子间距。</summary>
     private const float Spacing = 8f;
-
-    /// <summary>斜边宽度。</summary>
     private const float Slant = 10f;
-
-    /// <summary>左右两侧各占宽度 25% 的 alpha 渐变区。</summary>
-    private const float EdgeGradient = 0.25f;
-
-    /// <summary>数字描边宽度。</summary>
     private const float Stroke = 2f;
-
-    /// <summary>展开状态下格子的不透明度。</summary>
-    private const float SlotAlpha = 0.8f;
-
-    /// <summary>整排格子的纵向位置。</summary>
     private const float OffsetY = 48f;
+    private const float SlotAlpha = 0.8f;      // 展开状态下格子的不透明度
+    private const float EdgeGradient = 0.25f;  // 左右两侧各占宽度 25% 的 alpha 渐变区
+    private const float TextScale = 3.25f;     // 编号文字比格子更大，属于样式的一部分
 
-    /// <summary>编号文字的缩放（比格子更大，属于样式的一部分）。</summary>
-    private const float TextScale = 3.25f;
-
-    /// <summary>单个格子展开或收起所需的秒数。</summary>
+    // 单个格子展开或收起所需的秒数
     private const float AnimationDuration = 0.5f;
 
-    /// <summary>烘焙好的软边平行四边形贴图，只生成一次。</summary>
+    // 软边平行四边形贴图与数字字体，只准备一次
     private static Texture2D slotTexture;
-
-    /// <summary>数字字体（Renogare 192 图集），只解析一次。</summary>
     private static PixelFontSize digitFont;
 
     private sealed class Slot
@@ -156,7 +135,7 @@ public sealed class DashSeedInventoryHUD : Entity
         }
     }
 
-    /// <summary>当前持有的籽编号，按跟随顺序（先捡起的在前）。</summary>
+    /// <summary>按跟随顺序（先捡起的在前）收集当前持有的籽。</summary>
     private void BuildQueue()
     {
         queue.Clear();
@@ -259,10 +238,7 @@ public sealed class DashSeedInventoryHUD : Entity
         }
     }
 
-    /// <summary>
-    /// 生成 96x36 的软边平行四边形：左边和右边各 10% 宽度从透明线性渐变到不透明，
-    /// 4x4 超采样让斜边和渐变都平滑。只在第一次绘制时生成一次。
-    /// </summary>
+    /// <summary>生成格子贴图（96x36 软边平行四边形），只生成一次。</summary>
     private static Texture2D BuildSlotTexture()
     {
         const int samples = 4;
@@ -325,10 +301,7 @@ public sealed class DashSeedInventoryHUD : Entity
             0f);
     }
 
-    /// <summary>
-    /// 数字用的字体：优先取 Renogare 的 192px 图集，缩小绘制比把 64px 图集放大清晰得多。
-    /// 当前语言不是 Renogare 时按需加载它（数字都是 ASCII，不受语言影响）。
-    /// </summary>
+    /// <summary>数字字体：优先用 Renogare 的 192px 图集，取不到时退回当前字体。</summary>
     private static PixelFontSize DigitFont
     {
         get

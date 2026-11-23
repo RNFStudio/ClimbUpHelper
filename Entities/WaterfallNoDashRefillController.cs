@@ -3,9 +3,8 @@ using Celeste.Mod.Entities;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 在 ChroniaHelper Waterfall 内部时，玩家落地/游泳不会回复冲刺。
-/// 实现方式是在 <see cref="Player.Update"/> 期间临时把 <see cref="PlayerInventory.NoRefills"/> 设为 true，
-/// 让原版的回复冲刺逻辑被跳过，更新结束后再恢复原值。
+/// 瀑布内玩家落地、游泳都不回复冲刺。
+/// 判定体积 = 房间里每个 Waterfall 的范围（按 inset 左右收窄）。
 /// </summary>
 [CustomEntity("ChroniaHelper/WaterfallNoDashRefillController")]
 public sealed class WaterfallNoDashRefillController : Entity
@@ -19,10 +18,10 @@ public sealed class WaterfallNoDashRefillController : Entity
     {
         Visible = false;
 
-        // 和 no-grab controller 一样，左右各收缩 inset 像素，避免擦边就判定为在瀑布里
+        // 左右各收缩 inset 像素，避免擦边就被判定为在瀑布里
         inset = Math.Max(0, data.Int("inset", 0));
 
-        // 在 Player（Depth 0）之前更新，保证本帧的判定体积是最新的
+        // 比 Player（Depth 0）先更新，保证本帧判定体积是最新的
         Depth = 1;
     }
 

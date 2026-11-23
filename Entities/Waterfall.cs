@@ -4,26 +4,25 @@ using ChroniaHelper.Utils;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 简易瀑布：可自由缩放，填充和 2px 描边各自用颜色（颜色自带 alpha，不再额外给 alpha 参数）。
-/// 底部接到水面时按水面波动衔接并产生 ripple，同时通过 DisplacementRenderHook 像原版瀑布一样扭曲后面的景物。
-/// 不渲染 detailed lines。
+/// 简易瀑布：可自由缩放，填充与 2px 描边各用一套颜色（alpha 含在颜色里）。
+/// 底边接到水面时按水面波动衔接、产生 ripple，并像原版瀑布一样扭曲后面的景物。
 /// </summary>
 [CustomEntity("ChroniaHelper/Waterfall")]
 public sealed class Waterfall : Entity
 {
-    /// <summary>产生 ripple 的间隔（秒）。</summary>
+    // 产生 ripple 的间隔（秒）
     private const float RippleInterval = 0.3f;
 
-    /// <summary>每个 ripple 大约覆盖的宽度，用来决定一条瀑布上放几个 ripple。</summary>
+    // 每个 ripple 大约覆盖的宽度，用来决定一条瀑布上放几个 ripple
     private const float RippleSpacing = 40f;
 
-    /// <summary>底边与水面允许的衔接误差（像素）。</summary>
+    // 底边与水面允许的衔接误差（像素）
     private const float ConnectTolerance = 8f;
 
-    /// <summary>左右描边的宽度（像素），与原版瀑布一致。</summary>
+    // 左右描边的宽度（像素）
     private const float OutlineWidth = 2f;
 
-    /// <summary>瀑布区域写进 displacement 缓冲的颜色，与原版瀑布一致。</summary>
+    // 瀑布区域写进 displacement 缓冲的颜色
     private static readonly Color DisplacementColor = new Color(0.5f, 0.5f, 0.8f, 1f);
 
     private readonly float width;
@@ -34,7 +33,7 @@ public sealed class Waterfall : Entity
 
     private Water water;
 
-    /// <summary>实际绘制高度：接水时会被吸附到水面，其余情况等于面板高度。</summary>
+    // 实际绘制高度：接水时会吸附到水面，其余情况等于面板高度
     private float renderHeight;
 
     public Waterfall(EntityData data, Vector2 offset)

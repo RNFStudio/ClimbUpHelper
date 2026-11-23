@@ -1,12 +1,11 @@
 using Celeste.Mod.Entities;
-using System.Reflection;
+using MonoMod.Utils;
 
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// While the player is inside any <see cref="Waterfall"/> in this room, they cannot grab or climb:
-/// a <see cref="ClimbBlocker"/> stops climbing from being started, and the ClimbUpdate hook plus a
-/// per-frame check kick the player back to normal if they are already climbing.
+/// 瀑布内玩家无法开始攀爬，也不能保持攀爬。
+/// 判定体积 = 房间里每个 Waterfall 的范围（按 inset 左右收窄）。
 /// </summary>
 [CustomEntity("ChroniaHelper/WaterfallNoGrabController")]
 public sealed class WaterfallNoGrabController : Entity
@@ -15,25 +14,18 @@ public sealed class WaterfallNoGrabController : Entity
     private readonly List<Rectangle> scratch = new();
     private readonly int inset;
 
-    // LiftBoost is private in Celeste.dll; CrystallineHelper reads it the same way.
-    private static readonly PropertyInfo liftBoostProperty =
-        typeof(Player).GetProperty("LiftBoost", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
     public WaterfallNoGrabController(EntityData data, Vector2 offset)
         : base(data.Position + offset)
     {
         Visible = false;
 
-        // shrink the detection area by this many pixels on each side, so barely touching the edge
-        // of a waterfall does not count as being inside it
+        // 左右各收缩 inset 像素，避免擦边就被判定为在瀑布里
         inset = Math.Max(0, data.Int("inset", 2));
 
-        // Same component CrystallineHelper's NoGrabTrigger adds. It only has an effect because this
-        // entity's collider below covers the waterfall volumes.
+        // 只阻止「开始攀爬」；本实体的判定体积铺在瀑布上时才生效
         Add(new ClimbBlocker(true));
 
-        // entities are updated in descending depth order, so 1 runs before the Player (depth 0),
-        // making sure the collider is up to date for this frame's climb checks
+        // 比 Player（Depth 0）先更新，保证本帧判定体积是最新的
         Depth = 1;
     }
 
@@ -53,7 +45,7 @@ public sealed class WaterfallNoGrabController : Entity
     {
         if (!self.Dead && PlayerInsideWaterfall(self))
         {
-            if (liftBoostProperty?.GetValue(self) is Vector2 liftBoost)
+            if (DynamicData.For(self).Get("LiftBoost") is Vector2 liftBoost)
                 self.Speed += liftBoost;
 
             return Player.StNormal;
@@ -64,8 +56,7 @@ public sealed class WaterfallNoGrabController : Entity
 
     private static bool PlayerInsideWaterfall(Player player)
     {
-        // Scene.Tracker.GetEntities<T>() throws for types that were never added in this room, so
-        // just scan the room's entities (there is at most a handful of controllers).
+        // 直接扫房间实体：Tracker 对房间里没出现过的类型会抛异常
         foreach (Entity entity in player.Scene.Entities)
         {
             if (entity is WaterfallNoGrabController controller && player.CollideCheck(controller))
@@ -80,8 +71,8 @@ public sealed class WaterfallNoGrabController : Entity
         base.Update();
         UpdateColliderIfChanged();
 
-        // 强制松开：ClimbBlocker 只能阻止「开始抓」，已经抓着的玩家会被 ClimbUpdate 一直保持。
-        // 这里在 Player 之前（Depth 1 > 0）直接检查并切回 StNormal，覆盖被移动实体带进瀑布的情况。
+        // ClimbBlocker 只能阻止「开始抓」，已经抓着的玩家由这里踢回 StNormal，
+        // 覆盖被移动实体带进瀑布的情况
         ForceReleaseGrabInside();
     }
 
@@ -98,7 +89,7 @@ public sealed class WaterfallNoGrabController : Entity
         if (!player.CollideCheck(this))
             return;
 
-        if (liftBoostProperty?.GetValue(player) is Vector2 liftBoost)
+        if (DynamicData.For(player).Get("LiftBoost") is Vector2 liftBoost)
             player.Speed += liftBoost;
 
         // 切回普通状态会走 ClimbEnd，抓取立即松开；这一帧的 ClimbBlocker 会阻止重新抓回去
@@ -114,8 +105,7 @@ public sealed class WaterfallNoGrabController : Entity
             if (entity is not Waterfall waterfall || !waterfall.Active)
                 continue;
 
-            // The waterfall occupies [X, X + Width) x [Y, Y + Height); shrink it horizontally on
-            // both sides for a bit of tolerance at the edges.
+            // 瀑布占据 [X, X + Width) × [Y, Y + 绘制高度)，左右各收缩 inset 像素留出容差
             float judgedWidth = waterfall.Width - inset * 2f;
             float judgedHeight = waterfall.RenderedHeight;
 

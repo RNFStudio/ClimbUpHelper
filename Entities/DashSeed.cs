@@ -7,15 +7,13 @@ using ChroniaHelper.Utils;
 namespace ChroniaHelper.Entities;
 
 /// <summary>
-/// 冲刺籽：沿用原版草莓籽的行为，但不会与草莓合并。
+/// 冲刺籽：行为沿用原版草莓籽，但不会与草莓合并，也没有拾取保护和停留计时。
+/// 拾取后跟随玩家，站在移动实体上会跟着走；只在玩家站上安全地面时掉落。
 ///
-/// 拾取后跟随玩家，站在移动实体上会跟着一起移动；与原版草莓一致，籽只在玩家站在
-/// 安全地面时才会掉落（墙面、天花板等其它表面不会），没有拾取保护或停留计时。
-/// 籽自带一笔冲刺额度：玩家自己已经没有冲刺、却仍在按冲刺键时，由最先捡起的那颗籽
-/// 替玩家发起一次冲刺，每发起一次扣一点额度，额度归零这颗籽掉落，由下一颗籽接上。
+/// 自带一笔冲刺额度：玩家没有冲刺却仍按下冲刺键时，由最先捡起的籽替玩家起冲，
+/// 每冲一次扣一点，额度归零这颗籽掉落、由下一颗接上。
 ///
-/// 面板填写 seedDashes 可调整每颗籽的额度；面板填写 petals 指定花瓣数量。
-/// 籽的重生点会用一圈花瓣环显示这个数量，持有队列 HUD 也显示同样的数字。
+/// 面板属性：seedDashes 为每颗籽的额度，petals 为花瓣数量（重生点的花瓣环与持有队列 HUD 都显示它）。
 /// </summary>
 [Tracked]
 [CustomEntity("ChroniaHelper/DashSeed")]
@@ -35,26 +33,30 @@ public class DashSeed : BaseEntity
     private Player player;
     private Vector2 start;
 
-    /// <summary>上一帧玩家是否在水里，用于排除「从水里起跳」的向上速度判定。</summary>
+    // 重生点世界坐标；贴在移动平台上时会跟着平台走
+    private Vector2 Origin => start + (attached?.Position ?? Vector2.Zero);
+
+    // 上一帧玩家是否在水里，用于排除「从水里起跳」
     private bool wasInWater;
 
-    /// <summary>面板指定的花瓣数量（0 表示不显示花瓣/HUD 数字）。</summary>
+    // 面板指定的花瓣数量（0 = 不显示花瓣环与 HUD 数字）
     private int seedPetals;
 
-    /// <summary>重生点处的花瓣环，用来显示花瓣数量。</summary>
+    // 重生点处的花瓣环，显示花瓣数量
     private PetalRing petalRing;
 
-    /// <summary>面板指定的每颗籽的冲刺额度。</summary>
+    // 面板指定的每颗籽的额度 / 这颗籽剩余的额度（耗尽即掉落）
     private int seedDashes = 1;
-
-    /// <summary>这颗籽剩余的冲刺额度，耗尽即掉落。</summary>
     private int remainingDashes;
 
-    /// <summary>掉落后回到原位前的固定延迟。</summary>
+    // 掉落后回到原位前的固定延迟
     private float returnTime;
 
     private int initDepth;
     private int depthOnTouch = -1000000;
+
+    // 音效变体：生成时随机取 0~3，和花瓣数量无关
+    private int sfxVariant;
 
     private string pulseSfx, touchSfx, poofSfx, appearSfx;
     private string particlePath;
@@ -63,7 +65,7 @@ public class DashSeed : BaseEntity
     private float bloomAlpha;
     private float bloomRadius;
 
-    /// <summary>留在原位的虚线位置指示。</summary>
+    // 留在原位的虚线位置指示
     private OriginMarker marker;
     private string outlineTexture;
     private int outlineDepth;
@@ -80,7 +82,7 @@ public class DashSeed : BaseEntity
         remainingDashes = seedDashes;
         outlineTexture = data.Attr("outlineTexture", "ClimbUpHelper/DashSeed/seed_outline");
         outlineDepth = data.Int("outlineDepth", 0);
-        Collider = new Hitbox(12f, 12f, -6f, -6f); // wip: can customize in the future
+        Collider = new Hitbox(12f, 12f, -6f, -6f); // TODO: 后续可开放为面板属性
 
         Add(follower = new Follower(OnGainLeader, OnLoseLeader));
         follower.FollowDelay = 0.2f;
@@ -148,12 +150,6 @@ public class DashSeed : BaseEntity
 
     /// <summary>面板填写的花瓣数量，也是持有队列 HUD 显示的数字。</summary>
     public int Petals => seedPetals;
-
-    /// <summary>音效变体：每颗籽在生成时随机取 0~3，和花瓣数量无关。</summary>
-    private int sfxVariant;
-
-    /// <summary>籽的重生点世界坐标；贴在移动平台上时会跟着平台走。</summary>
-    private Vector2 Origin => start + (attached?.Position ?? Vector2.Zero);
 
     public override void Added(Scene scene)
     {
@@ -291,9 +287,8 @@ public class DashSeed : BaseEntity
     {
         bool inWater = player.CollideCheck<Water>();
 
-        // 只接管理论上能起冲的状态（Normal / Climb / Swim / 红冲 / 受击 / 发射 / 星飞）。
-        // 冲刺中、梦冲、飞行器、过场等状态不接管：否则会在一个本来不允许冲刺的状态里
-        // 硬插一次冲刺（例如冲刺中途再甩一次、打断梦冲）。
+        // 只接管理论上能起冲的状态（Normal / Climb / Swim / 红冲 / 受击 / 发射 / 星飞）；
+        // 冲刺中、梦冲、飞行器、过场不接管，避免在这些状态里硬插一次冲刺
         int state = player.StateMachine.State;
 
         if (state is not (Player.StNormal
