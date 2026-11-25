@@ -28,12 +28,12 @@ namespace ClimbUpHelper
         public override void Load()
         {
             // 瀑布内不回复冲刺
-            On.Celeste.Player.Update += ChroniaHelper.Entities.WaterfallNoDashRefillController.Player_Update;
+            On.Celeste.Player.Update += ChroniaHelper.Entities.RippleWaterfallNoDashRefillController.Player_Update;
         }
 
         public override void Unload()
         {
-            On.Celeste.Player.Update -= ChroniaHelper.Entities.WaterfallNoDashRefillController.Player_Update;
+            On.Celeste.Player.Update -= ChroniaHelper.Entities.RippleWaterfallNoDashRefillController.Player_Update;
         }
     }
 }

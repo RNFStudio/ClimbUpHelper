@@ -7,8 +7,8 @@ namespace ChroniaHelper.Entities;
 /// 简易瀑布：可自由缩放，填充与 2px 描边各用一套颜色（alpha 含在颜色里）。
 /// 底边接到水面时按水面波动衔接、产生 ripple，并像原版瀑布一样扭曲后面的景物。
 /// </summary>
-[CustomEntity("ChroniaHelper/Waterfall")]
-public sealed class Waterfall : Entity
+[CustomEntity("ChroniaHelper/RippleWaterfall")]
+public sealed class RippleWaterfall : Entity
 {
     // 产生 ripple 的间隔（秒）
     private const float RippleInterval = 0.3f;
@@ -36,7 +36,7 @@ public sealed class Waterfall : Entity
     // 实际绘制高度：接水时会吸附到水面，其余情况等于面板高度
     private float renderHeight;
 
-    public Waterfall(EntityData data, Vector2 offset)
+    public RippleWaterfall(EntityData data, Vector2 offset)
         : base(data.Position + offset)
     {
         width = data.Width;

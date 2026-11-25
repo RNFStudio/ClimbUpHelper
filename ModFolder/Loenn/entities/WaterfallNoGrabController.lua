@@ -1,6 +1,6 @@
 local controller = {}
 
-controller.name = "ChroniaHelper/WaterfallNoGrabController"
+controller.name = "ChroniaHelper/RippleWaterfallNoGrabController"
 controller.depth = -1000010
 --controller.fillColor = { 120 / 255, 200 / 255, 255 / 255, 0.25 }
 --controller.borderColor = { 120 / 255, 200 / 255, 255 / 255, 0.7 }

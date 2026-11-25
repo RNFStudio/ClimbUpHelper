@@ -6,14 +6,14 @@ namespace ChroniaHelper.Entities;
 /// 瀑布内玩家落地、游泳都不回复冲刺。
 /// 判定体积 = 房间里每个 Waterfall 的范围（按 inset 左右收窄）。
 /// </summary>
-[CustomEntity("ChroniaHelper/WaterfallNoDashRefillController")]
-public sealed class WaterfallNoDashRefillController : Entity
+[CustomEntity("ChroniaHelper/RippleWaterfallNoDashRefillController")]
+public sealed class RippleWaterfallNoDashRefillController : Entity
 {
     private readonly List<Rectangle> volumes = new();
     private readonly List<Rectangle> scratch = new();
     private readonly int inset;
 
-    public WaterfallNoDashRefillController(EntityData data, Vector2 offset)
+    public RippleWaterfallNoDashRefillController(EntityData data, Vector2 offset)
         : base(data.Position + offset)
     {
         Visible = false;
@@ -35,7 +35,7 @@ public sealed class WaterfallNoDashRefillController : Entity
     {
         foreach (Entity entity in player.Scene.Entities)
         {
-            if (entity is WaterfallNoDashRefillController controller
+            if (entity is RippleWaterfallNoDashRefillController controller
                 && controller.Collider != null
                 && player.CollideCheck(controller))
             {
@@ -77,7 +77,7 @@ public sealed class WaterfallNoDashRefillController : Entity
 
         foreach (Entity entity in Scene.Entities)
         {
-            if (entity is not Waterfall waterfall || !waterfall.Active)
+            if (entity is not RippleWaterfall waterfall || !waterfall.Active)
                 continue;
 
             float judgedWidth = waterfall.Width - inset * 2f;

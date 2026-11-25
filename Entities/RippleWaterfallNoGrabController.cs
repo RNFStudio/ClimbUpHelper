@@ -7,14 +7,14 @@ namespace ChroniaHelper.Entities;
 /// 瀑布内玩家无法开始攀爬，也不能保持攀爬。
 /// 判定体积 = 房间里每个 Waterfall 的范围（按 inset 左右收窄）。
 /// </summary>
-[CustomEntity("ChroniaHelper/WaterfallNoGrabController")]
-public sealed class WaterfallNoGrabController : Entity
+[CustomEntity("ChroniaHelper/RippleWaterfallNoGrabController")]
+public sealed class RippleWaterfallNoGrabController : Entity
 {
     private readonly List<Rectangle> volumes = new();
     private readonly List<Rectangle> scratch = new();
     private readonly int inset;
 
-    public WaterfallNoGrabController(EntityData data, Vector2 offset)
+    public RippleWaterfallNoGrabController(EntityData data, Vector2 offset)
         : base(data.Position + offset)
     {
         Visible = false;
@@ -59,7 +59,7 @@ public sealed class WaterfallNoGrabController : Entity
         // 直接扫房间实体：Tracker 对房间里没出现过的类型会抛异常
         foreach (Entity entity in player.Scene.Entities)
         {
-            if (entity is WaterfallNoGrabController controller && player.CollideCheck(controller))
+            if (entity is RippleWaterfallNoGrabController controller && player.CollideCheck(controller))
                 return true;
         }
 
@@ -102,7 +102,7 @@ public sealed class WaterfallNoGrabController : Entity
 
         foreach (Entity entity in Scene.Entities)
         {
-            if (entity is not Waterfall waterfall || !waterfall.Active)
+            if (entity is not RippleWaterfall waterfall || !waterfall.Active)
                 continue;
 
             // 瀑布占据 [X, X + Width) × [Y, Y + 绘制高度)，左右各收缩 inset 像素留出容差

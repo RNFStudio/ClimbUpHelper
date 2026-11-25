@@ -1,6 +1,6 @@
 local controller = {}
 
-controller.name = "ChroniaHelper/WaterfallNoDashRefillController"
+controller.name = "ChroniaHelper/RippleWaterfallNoDashRefillController"
 controller.depth = -1000010
 
 controller.placements = {

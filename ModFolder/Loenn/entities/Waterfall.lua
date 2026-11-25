@@ -3,7 +3,7 @@ local utils = require("utils")
 
 local waterfall = {}
 
-waterfall.name = "ChroniaHelper/Waterfall"
+waterfall.name = "ChroniaHelper/RippleWaterfall"
 waterfall.canResize = { true, true }
 waterfall.minimumSize = { 8, 8 }
 

@@ -22,35 +22,35 @@ entities.ChroniaHelper/DashSeed.attributes.description.particleSprite=Particle s
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor1=Primary particle color
 entities.ChroniaHelper/DashSeed.attributes.description.particleColor2=Secondary particle color
 
-# ========================== Waterfall
+# ========================== Ripple Waterfall
 
-entities.ChroniaHelper/Waterfall.placements.name.waterfall=Waterfall
-entities.ChroniaHelper/Waterfall.placements.description.waterfall=A resizable waterfall with customizable fill and outline colors. Its bottom connects to the water surface and ripples it, and it distorts the scenery like a vanilla waterfall.
+entities.ChroniaHelper/RippleWaterfall.placements.name.waterfall=Ripple Waterfall
+entities.ChroniaHelper/RippleWaterfall.placements.description.waterfall=A resizable waterfall with customizable fill and outline colors. Its bottom connects to the water surface and ripples it, and it distorts the scenery like a vanilla waterfall.
 
-entities.ChroniaHelper/Waterfall.attributes.name.fill_color=Fill Color
-entities.ChroniaHelper/Waterfall.attributes.description.fill_color=Color of the center fill (alpha supported).
-entities.ChroniaHelper/Waterfall.attributes.name.outline_color=Outline Color
-entities.ChroniaHelper/Waterfall.attributes.description.outline_color=Color of the 2px left and right outlines (alpha supported).
-entities.ChroniaHelper/Waterfall.attributes.name.ripple_strength=Ripple Strength
-entities.ChroniaHelper/Waterfall.attributes.description.ripple_strength=Strength of the ripples created on the water surface when the bottom of the waterfall touches water. Default 0.75.
-entities.ChroniaHelper/Waterfall.attributes.name.depth=Depth
-entities.ChroniaHelper/Waterfall.attributes.description.depth=Render depth of the waterfall. Default -9999.
+entities.ChroniaHelper/RippleWaterfall.attributes.name.fill_color=Fill Color
+entities.ChroniaHelper/RippleWaterfall.attributes.description.fill_color=Color of the center fill (alpha supported).
+entities.ChroniaHelper/RippleWaterfall.attributes.name.outline_color=Outline Color
+entities.ChroniaHelper/RippleWaterfall.attributes.description.outline_color=Color of the 2px left and right outlines (alpha supported).
+entities.ChroniaHelper/RippleWaterfall.attributes.name.ripple_strength=Ripple Strength
+entities.ChroniaHelper/RippleWaterfall.attributes.description.ripple_strength=Strength of the ripples created on the water surface when the bottom of the waterfall touches water. Default 0.75.
+entities.ChroniaHelper/RippleWaterfall.attributes.name.depth=Depth
+entities.ChroniaHelper/RippleWaterfall.attributes.description.depth=Render depth of the waterfall. Default -9999.
 
-# ========================== Waterfall No-Grab Controller
+# ========================== Ripple Waterfall No-Grab Controller
 
-entities.ChroniaHelper/WaterfallNoGrabController.placements.name.controller=Waterfall No-Grab Controller
-entities.ChroniaHelper/WaterfallNoGrabController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, they cannot grab or climb.
+entities.ChroniaHelper/RippleWaterfallNoGrabController.placements.name.controller=Ripple Waterfall No-Grab Controller
+entities.ChroniaHelper/RippleWaterfallNoGrabController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, they cannot grab or climb.
 
-entities.ChroniaHelper/WaterfallNoGrabController.attributes.name.inset=Edge Inset
-entities.ChroniaHelper/WaterfallNoGrabController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall, so barely touching the edge does not count. Default 2.
+entities.ChroniaHelper/RippleWaterfallNoGrabController.attributes.name.inset=Edge Inset
+entities.ChroniaHelper/RippleWaterfallNoGrabController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall, so barely touching the edge does not count. Default 2.
 
-# ========================== Waterfall No Dash Refill Controller
+# ========================== Ripple Waterfall No Dash Refill Controller
 
-entities.ChroniaHelper/WaterfallNoDashRefillController.placements.name.controller=Waterfall No Dash Refill Controller
-entities.ChroniaHelper/WaterfallNoDashRefillController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, landing on the ground does not refill dashes.
+entities.ChroniaHelper/RippleWaterfallNoDashRefillController.placements.name.controller=Ripple Waterfall No Dash Refill Controller
+entities.ChroniaHelper/RippleWaterfallNoDashRefillController.placements.description.controller=While the player is inside any ChroniaHelper Waterfall, landing on the ground does not refill dashes.
 
-entities.ChroniaHelper/WaterfallNoDashRefillController.attributes.name.inset=Edge Inset
-entities.ChroniaHelper/WaterfallNoDashRefillController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall. Default 2.
+entities.ChroniaHelper/RippleWaterfallNoDashRefillController.attributes.name.inset=Edge Inset
+entities.ChroniaHelper/RippleWaterfallNoDashRefillController.attributes.description.inset=Shrinks the detection area by this many pixels on each side of the waterfall. Default 2.
 
 # ========================== Gaussian Blur (background styleground)
 
